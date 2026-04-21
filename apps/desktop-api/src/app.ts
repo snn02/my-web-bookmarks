@@ -233,6 +233,10 @@ export function createApp(options: CreateAppOptions = {}): Express {
       });
     }
 
+    if (typeof request.body?.chromeProfilePath === 'string') {
+      settings.setChromeProfilePath(request.body.chromeProfilePath);
+    }
+
     return response.status(200).json(settings.getPublicSettings());
   });
 

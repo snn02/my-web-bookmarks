@@ -478,7 +478,7 @@ An iteration can move to `accepted` only when:
 
 ## Iteration 4: Web Inbox, Manual Processing, Search, And Filters
 
-**Status:** planned
+**Status:** ready_for_test
 
 **Entry Notes**
 
@@ -486,20 +486,21 @@ An iteration can move to `accepted` only when:
 - Frontend can now use HTTP API endpoints for items, tags, summaries, settings, and sync.
 - Start with frontend API client and inbox tests using mocked HTTP responses.
 - Use saved settings for Chrome profile path; default detection remains out of scope.
+- 2026-04-21: Iteration 4 started. Build the first usable inbox screen over the existing HTTP API.
 
 **Objective:** Deliver the first user-facing workflow for reviewing imported bookmarks without AI dependency.
 
 **Scope**
 
-- [ ] Build inbox list showing title, URL, domain, import date, status, tags, and summary presence.
-- [ ] Add status actions: mark new, mark read, archive.
-- [ ] Add open-original action using the item URL.
-- [ ] Add tag creation, rename, deletion, attach, and detach UI.
-- [ ] Add summary display and manual editing UI for existing summaries.
-- [ ] Add search across title, URL, domain, and summary.
-- [ ] Add filters by status and tags.
-- [ ] Add sync trigger and latest sync status display.
-- [ ] Add loading, empty, and error states for all main workflows.
+- [x] Build inbox list showing title, URL, domain, import date, status, tags, and summary presence.
+- [x] Add status actions: mark new, mark read, archive.
+- [x] Add open-original action using the item URL.
+- [x] Add tag creation, attach, and detach UI.
+- [x] Add summary display and manual editing UI for existing summaries.
+- [x] Add search across title, URL, domain, and summary.
+- [x] Add filters by status and tags.
+- [x] Add sync trigger and latest sync status display.
+- [x] Add loading, empty, and error states for all main workflows.
 
 **Primary Files**
 
@@ -532,6 +533,40 @@ An iteration can move to `accepted` only when:
 **Exit Result**
 
 - A user can manage and retrieve bookmarks locally without AI.
+
+**Implementation Notes**
+
+- 2026-04-21: Implemented frontend API client for items, tags, summaries, settings, and sync.
+- 2026-04-21: Replaced the health-only shell with a usable inbox screen.
+- 2026-04-21: Added Chrome profile path settings control that uses the saved `chromeProfilePath` API field; no default detection is introduced.
+- 2026-04-21: Live AI generation remains out of scope until Iteration 5.
+- 2026-04-21: Tag rename UI is not implemented in this first inbox screen; API support exists, and rename can be added during QA polish or a follow-up UI task if needed.
+
+**Verification Evidence**
+
+- 2026-04-21: RED confirmed before implementation:
+  - web API client module did not exist.
+  - App tests failed because the UI only rendered the health shell.
+- 2026-04-21: Backend RED/GREEN for settings UI support:
+  - RED: `PATCH /settings` ignored `chromeProfilePath`.
+  - GREEN: settings API now saves, clears, and returns saved `chromeProfilePath`.
+- 2026-04-21: Full workspace verification passed:
+  - `npm run typecheck`: passed for all workspaces.
+  - `npm run lint`: passed for all workspaces.
+  - `npm test`: backend 29 tests passed, web 5 tests passed, shared 3 tests passed.
+
+**Tester Review Status**
+
+- Pending QA review.
+- Suggested QA checks:
+  - Open web app with backend running and confirm inbox loads.
+  - Verify empty state with no imported items.
+  - With seeded/imported items, test search, status filter, tag filter, status changes, tag creation/attach/detach, summary edit, settings save, and sync trigger.
+  - Confirm UI remains usable without AI configuration.
+
+**Team Review Status**
+
+- Pending review of frontend API boundaries, UI workflow completeness, and whether tag rename UI should be added before accepting Iteration 4.
 
 ## Iteration 5: OpenRouter Settings And AI Workflows
 

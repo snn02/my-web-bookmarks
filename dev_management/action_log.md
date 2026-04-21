@@ -516,3 +516,62 @@ This log records implementation actions, planning decisions, verification eviden
 - Build frontend API client for items, tags, summaries, settings, and sync endpoints.
 - Add inbox list and processing UI tests before UI implementation.
 - Keep AI generation UI as disabled/placeholder unless covered by Iteration 5.
+
+## 2026-04-21 - Iteration 4 started
+
+**Goal**
+
+- Deliver the first usable web inbox for local bookmark processing over the existing HTTP API.
+
+**Scope decision**
+
+- Build API client and single-screen inbox UI.
+- Include sync trigger, Chrome profile setting input, item list, search/status/tag filters, status actions, tag creation/attach/detach, summary display/manual edit, loading/error/empty states.
+- Keep live AI generation controls out of scope until Iteration 5.
+
+**Planned TDD slices**
+
+- API client tests for items, tags, settings, sync, status update, tag attach/detach, and summary update.
+- App tests for initial load, backend unavailable state, filtering, status update, tag creation/attach, sync trigger, and settings save.
+
+**Actions completed**
+
+- Added frontend API client tests.
+- Added App workflow tests for inbox loading, backend unavailable state, filtering, status update, tag creation/attach, settings save, and sync trigger.
+- Confirmed RED state:
+  - missing `src/api/client`
+  - App still rendering only health shell
+- Implemented `apps/web/src/api/client.ts`.
+- Replaced `apps/web/src/App.vue` with the first inbox screen.
+- Added backend settings API support for saved `chromeProfilePath` so the frontend settings control has a real backend contract.
+
+**Debugging notes**
+
+- Initial App workflow test mock order returned an item status response where an item list response was expected; fixed the test setup to match the real request sequence.
+- Summary text is now rendered as visible preview text in addition to editable textarea content.
+- Backend settings API shape now includes `chromeProfilePath: string | null`.
+
+**Verification evidence**
+
+- `npm run test --workspace @my-web-bookmarks/web` passed on 2026-04-21:
+  - 2 test files passed.
+  - 5 tests passed.
+- Focused backend settings tests passed on 2026-04-21:
+  - 2 test files passed.
+  - 17 tests passed.
+- `npm run typecheck` passed on 2026-04-21.
+- `npm run lint` passed on 2026-04-21.
+- `npm test` passed on 2026-04-21:
+  - Backend: 29 tests passed.
+  - Web: 5 tests passed.
+  - Shared: 3 tests passed.
+
+**Status**
+
+- Iteration 4 implementation is ready for tester review and team review.
+
+**Next review focus**
+
+- Decide whether tag rename UI is required before accepting Iteration 4.
+- Review whether the single-screen inbox workflow is ergonomic enough for first manual use.
+- Verify UI with a real synced dataset once a persisted dev database is introduced.

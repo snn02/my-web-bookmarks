@@ -243,6 +243,7 @@ describe('settings API', () => {
 
     expect(patchResponse.status).toBe(200);
     expect(patchResponse.body).toEqual({
+      chromeProfilePath: null,
       openRouter: {
         apiKeyConfigured: true,
         model: 'openai/gpt-5-mini'
@@ -254,5 +255,21 @@ describe('settings API', () => {
     const getResponse = await request(app).get('/api/v1/settings');
     expect(getResponse.status).toBe(200);
     expect(JSON.stringify(getResponse.body)).not.toContain('or-v1-secret');
+  });
+
+  it('patches and returns saved Chrome profile path without default detection', async () => {
+    const { app } = createApiTestContext();
+
+    const patchResponse = await request(app).patch('/api/v1/settings').send({
+      chromeProfilePath: 'C:\\Chrome\\Default'
+    });
+
+    expect(patchResponse.status).toBe(200);
+    expect(patchResponse.body.chromeProfilePath).toBe('C:\\Chrome\\Default');
+
+    const clearResponse = await request(app).patch('/api/v1/settings').send({
+      chromeProfilePath: ''
+    });
+    expect(clearResponse.body.chromeProfilePath).toBeNull();
   });
 });

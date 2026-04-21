@@ -123,6 +123,7 @@ describe('settings repository', () => {
 
     expect(settings.getOpenRouterApiKey()).toBe('or-v1-secret');
     expect(settings.getPublicSettings()).toEqual({
+      chromeProfilePath: null,
       openRouter: {
         apiKeyConfigured: true,
         model: 'openai/gpt-5-mini'

@@ -6,6 +6,7 @@ export interface PublicSettings {
     apiKeyConfigured: boolean;
     model: string | null;
   };
+  chromeProfilePath: string | null;
 }
 
 export interface OpenRouterSettingsPatch {
@@ -75,6 +76,7 @@ export function createSettingsRepository(db: AppDatabase) {
 
   function getPublicSettings(): PublicSettings {
     return {
+      chromeProfilePath: getChromeProfilePath(),
       openRouter: {
         apiKeyConfigured: Boolean(getOpenRouterApiKey()),
         model: getSetting(OPENROUTER_MODEL)
