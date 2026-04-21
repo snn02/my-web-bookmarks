@@ -374,7 +374,7 @@ An iteration can move to `accepted` only when:
 
 ## Iteration 3: Chrome Bookmark Import And Sync
 
-**Status:** ready_for_test
+**Status:** accepted
 
 **Entry Notes**
 
@@ -389,7 +389,7 @@ An iteration can move to `accepted` only when:
 **Scope**
 
 - [x] Implement Chrome `Bookmarks` file reader for configured profile path.
-- [ ] Add safe default profile path detection for Windows.
+- [x] Confirm profile path strategy: use only saved `chrome_profile_path`; do not add default Windows detection in V1.
 - [x] Parse bookmark folders recursively and extract bookmark title, URL, source path, and source identifier.
 - [x] Normalize URLs and upsert items by `normalized_url`.
 - [x] Preserve user-managed status, tags, and summaries on re-import.
@@ -435,7 +435,7 @@ An iteration can move to `accepted` only when:
 - 2026-04-21: Implemented bookmark sync service using item repository deduplication by normalized URL.
 - 2026-04-21: Implemented async `POST /sync/bookmarks` response with `running` status and background completion.
 - 2026-04-21: Implemented `GET /sync/status` with `idle`, `running`, `succeeded`, and `failed` API statuses.
-- 2026-04-21: Safe default Windows profile path detection remains open for QA/team review decision; current implementation uses configured settings path only.
+- 2026-04-21: User confirmed default Windows profile path detection is out of scope; sync uses only saved `chrome_profile_path`.
 
 **Verification Evidence**
 
@@ -451,23 +451,41 @@ An iteration can move to `accepted` only when:
   - `npm run typecheck`: passed for all workspaces.
   - `npm run lint`: passed for all workspaces.
   - `npm test`: backend 27 tests passed, web 2 tests passed, shared 3 tests passed.
+- 2026-04-21: QA/team review verification passed:
+  - focused sync service QA test for unset `chrome_profile_path`: passed.
+  - final `npm run typecheck`: passed for all workspaces.
+  - final `npm run lint`: passed for all workspaces.
+  - final `npm test`: backend 28 tests passed, web 2 tests passed, shared 3 tests passed.
 
 **Tester Review Status**
 
-- Pending QA review.
-- Suggested QA checks:
-  - Run sync against fixture or copied Chrome profile path.
-  - Confirm imported/updated/skipped counts.
-  - Confirm repeated sync deduplicates by normalized URL.
-  - Confirm missing profile path creates failed sync status with useful error.
+- Accepted on 2026-04-21.
+- QA checks covered by fixture-backed and API-level tests:
+  - sync against fixture Chrome profile path
+  - imported/updated/skipped counts
+  - repeated sync deduplication by normalized URL
+  - missing or unset profile path creates failed sync status with useful error
 
 **Team Review Status**
 
-- Pending review of parser source identifiers, async sync behavior, active-run protection, and whether default Windows profile detection should be completed in this iteration or deferred.
+- Accepted on 2026-04-21.
+- Review notes:
+  - Chrome integration is read-only and only reads the configured `Bookmarks` file.
+  - Source IDs use the Chrome root key, user folder path, and bookmark `guid`/fallback identifier.
+  - Sync API follows the async contract: `POST /sync/bookmarks` returns `running`; `GET /sync/status` reports completion.
+  - Single-active-run protection is implemented with `sync_already_running`.
+  - User explicitly confirmed default Windows profile path detection is out of scope; sync uses only saved `chrome_profile_path`.
 
 ## Iteration 4: Web Inbox, Manual Processing, Search, And Filters
 
 **Status:** planned
+
+**Entry Notes**
+
+- Iteration 3 is accepted.
+- Frontend can now use HTTP API endpoints for items, tags, summaries, settings, and sync.
+- Start with frontend API client and inbox tests using mocked HTTP responses.
+- Use saved settings for Chrome profile path; default detection remains out of scope.
 
 **Objective:** Deliver the first user-facing workflow for reviewing imported bookmarks without AI dependency.
 

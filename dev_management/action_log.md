@@ -454,6 +454,65 @@ This log records implementation actions, planning decisions, verification eviden
 
 **Next review focus**
 
-- Decide whether default Windows Chrome profile path detection must be finished before accepting Iteration 3.
+- Confirm saved-settings-only Chrome profile path behavior is acceptable for V1.
 - Review source ID stability for imported Chrome bookmarks.
 - Review async sync behavior and active-run protection.
+
+## 2026-04-21 - Iteration 3 QA and team review
+
+**Scope decision**
+
+- User confirmed default Windows Chrome profile path detection should not be implemented.
+- V1 sync uses only the saved `chrome_profile_path` setting.
+
+**QA actions**
+
+- Ran full workspace verification:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm test`
+- Reviewed parser, sync service, and sync API tests.
+- Confirmed tests cover:
+  - recursive Chrome bookmark parsing
+  - invalid URL skipping
+  - deduplication by normalized URL
+  - metadata preservation on re-import
+  - missing profile/bookmarks file failure status
+  - async `POST /sync/bookmarks`
+  - `GET /sync/status`
+  - `sync_already_running`
+
+**Team review actions**
+
+- Confirmed parser reads Chrome `Bookmarks` file only and does not write to Chrome.
+- Confirmed sync service reads profile path only from persisted settings.
+- Confirmed no default Chrome profile path detection code exists.
+
+**Follow-up implemented**
+
+- Added a QA test for unset `chrome_profile_path`.
+- Confirmed unset profile path records a failed sync with `Chrome profile path is not configured.`.
+
+**Final verification evidence**
+
+- Focused sync service QA test passed on 2026-04-21:
+  - 1 test file passed.
+  - 4 tests passed.
+- `npm run typecheck` passed on 2026-04-21.
+- `npm run lint` passed on 2026-04-21.
+- `npm test` passed on 2026-04-21:
+  - Backend: 28 tests passed.
+  - Web: 2 tests passed.
+  - Shared: 3 tests passed.
+
+**Decision**
+
+- Iteration 3 is accepted.
+- Default Windows profile path detection is out of scope for V1 unless explicitly reintroduced later.
+- Iteration 4 can start with the web inbox over the existing HTTP API.
+
+**Iteration 4 preparation**
+
+- Build frontend API client for items, tags, summaries, settings, and sync endpoints.
+- Add inbox list and processing UI tests before UI implementation.
+- Keep AI generation UI as disabled/placeholder unless covered by Iteration 5.

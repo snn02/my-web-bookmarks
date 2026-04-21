@@ -77,4 +77,14 @@ describe('bookmark sync service', () => {
     expect(result.errorMessage).toContain('Bookmarks');
     expect(syncRuns.getLatestSyncRun()?.status).toBe('failed');
   });
+
+  it('records a failed sync when the Chrome profile path is not configured', () => {
+    const { service, syncRuns } = createSyncTestContext();
+
+    const result = service.syncBookmarks();
+
+    expect(result.status).toBe('failed');
+    expect(result.errorMessage).toBe('Chrome profile path is not configured.');
+    expect(syncRuns.getLatestSyncRun()?.status).toBe('failed');
+  });
 });
