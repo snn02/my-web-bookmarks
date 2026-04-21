@@ -1,6 +1,7 @@
 import { API_BASE_PATH, healthResponse } from '@my-web-bookmarks/shared';
 import express, { type Express } from 'express';
 import { createInMemoryDatabase, initializeDatabase, type AppDatabase } from './db/database';
+import { AiNotConfiguredError, AiUpstreamError, createAiService } from './domain/ai/ai-service';
 import { createItemRepository, type ItemSort, type ItemStatus } from './domain/items/item-repository';
 import { createSettingsRepository } from './domain/settings/settings-repository';
 import { createSummaryRepository } from './domain/summaries/summary-repository';
@@ -11,6 +12,7 @@ import { sendApiError } from './http/errors';
 
 export interface CreateAppOptions {
   db?: AppDatabase;
+  openRouterFetch?: typeof fetch;
 }
 
 const ITEM_STATUSES = new Set<ItemStatus>(['new', 'read', 'archived']);
@@ -30,6 +32,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
   const summaries = createSummaryRepository(db);
   const syncRuns = createSyncRunRepository(db);
   const bookmarkSync = createBookmarkSyncService({ items, settings, syncRuns });
+  const ai = createAiService({ fetchImpl: options.openRouterFetch, items, settings, summaries });
   const tags = createTagRepository(db);
   const app = express();
 
@@ -184,11 +187,16 @@ export function createApp(options: CreateAppOptions = {}): Express {
     return response.status(200).json(summary);
   });
 
-  app.post(`${API_BASE_PATH}/items/:itemId/summary`, (request, response) => {
+  app.post(`${API_BASE_PATH}/items/:itemId/summary`, async (request, response) => {
     if (!items.getItem(request.params.itemId)) {
       return sendApiError(response, 404, 'not_found', 'Item was not found.');
     }
-    return sendApiError(response, 409, 'ai_not_configured', 'OpenRouter is not configured.');
+
+    try {
+      return response.status(200).json(await ai.generateSummary(request.params.itemId));
+    } catch (error) {
+      return sendAiError(response, error);
+    }
   });
 
   app.patch(`${API_BASE_PATH}/items/:itemId/summary`, (request, response) => {
@@ -207,11 +215,18 @@ export function createApp(options: CreateAppOptions = {}): Express {
     }
   });
 
-  app.post(`${API_BASE_PATH}/items/:itemId/tag-suggestions`, (request, response) => {
+  app.post(`${API_BASE_PATH}/items/:itemId/tag-suggestions`, async (request, response) => {
     if (!items.getItem(request.params.itemId)) {
       return sendApiError(response, 404, 'not_found', 'Item was not found.');
     }
-    return sendApiError(response, 409, 'ai_not_configured', 'OpenRouter is not configured.');
+
+    try {
+      return response.status(200).json({
+        suggestions: await ai.suggestTags(request.params.itemId)
+      });
+    } catch (error) {
+      return sendAiError(response, error);
+    }
   });
 
   app.get(`${API_BASE_PATH}/settings`, (_request, response) => {
@@ -259,6 +274,18 @@ export function createApp(options: CreateAppOptions = {}): Express {
   });
 
   return app;
+}
+
+function sendAiError(response: Parameters<typeof sendApiError>[0], error: unknown) {
+  if (error instanceof AiNotConfiguredError) {
+    return sendApiError(response, 409, 'ai_not_configured', 'OpenRouter is not configured.');
+  }
+
+  if (error instanceof AiUpstreamError) {
+    return sendApiError(response, 502, 'upstream_error', 'OpenRouter request failed.');
+  }
+
+  throw error;
 }
 
 function idleSyncStatus() {

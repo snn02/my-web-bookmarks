@@ -8,8 +8,11 @@ import {
   fetchSettings,
   fetchSyncStatus,
   fetchTags,
+  generateSummary,
   removeTagFromItem,
   saveChromeProfilePath,
+  saveOpenRouterSettings,
+  suggestTags,
   startBookmarkSync,
   updateItemStatus,
   updateSummary,
@@ -17,7 +20,8 @@ import {
   type ItemSort,
   type ItemStatus,
   type SyncStatus,
-  type Tag
+  type Tag,
+  type TagSuggestion
 } from './api/client';
 
 type BackendState = 'checking' | 'available' | 'unavailable';
@@ -34,9 +38,15 @@ const tagFilter = ref('');
 const sort = ref<ItemSort>('importedAt:desc');
 const newTagName = ref('');
 const chromeProfilePath = ref('');
+const openRouterApiKey = ref('');
+const openRouterConfigured = ref(false);
+const openRouterModel = ref('');
 const syncStatus = ref<SyncStatus | null>(null);
 const syncInProgress = ref(false);
 const summaryDrafts = ref<Record<string, string>>({});
+const aiBusyItemId = ref('');
+const aiErrorMessage = ref('');
+const tagSuggestionsByItemId = ref<Record<string, TagSuggestion[]>>({});
 
 const selectedTagId = computed(() => tagFilter.value || undefined);
 
@@ -71,6 +81,8 @@ async function loadInitialData(): Promise<void> {
     total.value = itemList.total;
     tags.value = tagList.tags;
     chromeProfilePath.value = settings.chromeProfilePath ?? '';
+    openRouterConfigured.value = settings.openRouter.apiKeyConfigured;
+    openRouterModel.value = settings.openRouter.model ?? 'openai/gpt-5-mini';
     syncStatus.value = status;
     syncSummaryDrafts();
   } catch (error) {
@@ -129,6 +141,16 @@ async function saveProfilePath(): Promise<void> {
   chromeProfilePath.value = settings.chromeProfilePath ?? chromeProfilePath.value;
 }
 
+async function saveAiSettings(): Promise<void> {
+  const settings = await saveOpenRouterSettings({
+    apiKey: openRouterApiKey.value,
+    model: openRouterModel.value
+  });
+  openRouterConfigured.value = settings.openRouter.apiKeyConfigured;
+  openRouterModel.value = settings.openRouter.model ?? openRouterModel.value;
+  openRouterApiKey.value = '';
+}
+
 async function syncBookmarks(): Promise<void> {
   syncInProgress.value = true;
   errorMessage.value = '';
@@ -157,6 +179,55 @@ async function syncBookmarks(): Promise<void> {
 function replaceItem(updated: BookmarkItem): void {
   items.value = items.value.map((item) => (item.id === updated.id ? updated : item));
   syncSummaryDrafts();
+}
+
+async function generateAiSummary(item: BookmarkItem): Promise<void> {
+  aiBusyItemId.value = item.id;
+  aiErrorMessage.value = '';
+  try {
+    await saveAiSettings();
+    const summary = await generateSummary(item.id);
+    replaceItem({ ...item, summary });
+  } catch (error) {
+    aiErrorMessage.value = error instanceof Error ? error.message : 'Failed to generate summary.';
+  } finally {
+    aiBusyItemId.value = '';
+  }
+}
+
+async function loadTagSuggestions(item: BookmarkItem): Promise<void> {
+  aiBusyItemId.value = item.id;
+  aiErrorMessage.value = '';
+  try {
+    await saveAiSettings();
+    const result = await suggestTags(item.id);
+    tagSuggestionsByItemId.value = {
+      ...tagSuggestionsByItemId.value,
+      [item.id]: result.suggestions
+    };
+  } catch (error) {
+    aiErrorMessage.value = error instanceof Error ? error.message : 'Failed to suggest tags.';
+  } finally {
+    aiBusyItemId.value = '';
+  }
+}
+
+async function applySuggestedTag(item: BookmarkItem, suggestion: TagSuggestion): Promise<void> {
+  aiErrorMessage.value = '';
+  try {
+    const tag = await createTag(suggestion.name);
+    tags.value = [...tags.value, tag].sort((left, right) => left.name.localeCompare(right.name));
+    const result = await attachTagToItem(item.id, tag.id);
+    replaceItem({ ...item, tags: result.tags });
+    tagSuggestionsByItemId.value = {
+      ...tagSuggestionsByItemId.value,
+      [item.id]: (tagSuggestionsByItemId.value[item.id] ?? []).filter(
+        (current) => current.name !== suggestion.name
+      )
+    };
+  } catch (error) {
+    aiErrorMessage.value = error instanceof Error ? error.message : 'Failed to apply suggested tag.';
+  }
 }
 
 function syncSummaryDrafts(): void {
@@ -225,8 +296,16 @@ function delay(milliseconds: number): Promise<void> {
       <span v-if="syncStatus?.error" class="error sync-error">{{ syncStatus.error }}</span>
     </section>
 
+    <section class="settings-band" aria-label="AI settings">
+      <input v-model="openRouterApiKey" aria-label="OpenRouter API key" placeholder="OpenRouter API key" type="password" />
+      <input v-model="openRouterModel" aria-label="OpenRouter model" placeholder="OpenRouter model" />
+      <button aria-label="Save OpenRouter settings" type="button" @click="saveAiSettings">Save AI</button>
+      <span class="sync-status">OpenRouter: {{ openRouterConfigured ? 'configured' : 'not configured' }}</span>
+    </section>
+
     <p v-if="loading" class="muted">Loading inbox...</p>
     <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+    <p v-if="aiErrorMessage" class="error">{{ aiErrorMessage }}</p>
 
     <section class="summary-row" aria-label="Inbox summary">
       <strong>{{ total }}</strong>
@@ -263,7 +342,36 @@ function delay(milliseconds: number): Promise<void> {
         <div class="summary-editor">
           <p v-if="item.summary" class="summary-preview">{{ item.summary.content }}</p>
           <textarea v-model="summaryDrafts[item.id]" :aria-label="`Summary for ${item.title}`" rows="4" />
-          <button :aria-label="`Save summary for ${item.title}`" type="button" @click="saveSummary(item)">Save summary</button>
+          <div class="actions">
+            <button :aria-label="`Save summary for ${item.title}`" type="button" @click="saveSummary(item)">Save summary</button>
+            <button
+              :aria-label="`Generate summary for ${item.title}`"
+              type="button"
+              :disabled="aiBusyItemId === item.id"
+              @click="generateAiSummary(item)"
+            >
+              {{ item.summary ? 'Regenerate summary' : 'Generate summary' }}
+            </button>
+            <button
+              :aria-label="`Suggest tags for ${item.title}`"
+              type="button"
+              :disabled="aiBusyItemId === item.id"
+              @click="loadTagSuggestions(item)"
+            >
+              Suggest tags
+            </button>
+          </div>
+          <div v-if="tagSuggestionsByItemId[item.id]?.length" class="suggestions">
+            <button
+              v-for="suggestion in tagSuggestionsByItemId[item.id]"
+              :key="suggestion.name"
+              :aria-label="`Apply suggested tag ${suggestion.name} to ${item.title}`"
+              type="button"
+              @click="applySuggestedTag(item, suggestion)"
+            >
+              {{ suggestion.name }}
+            </button>
+          </div>
         </div>
       </article>
     </section>
@@ -439,6 +547,13 @@ button:disabled {
   display: block;
   margin-bottom: 8px;
   width: 100%;
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 @media (max-width: 780px) {

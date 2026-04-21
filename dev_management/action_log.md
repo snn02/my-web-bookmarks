@@ -677,3 +677,74 @@ This log records implementation actions, planning decisions, verification eviden
 
 - Iteration 4 remains accepted with a post-QA hotfix.
 - The user should retry Sync with a full Chrome profile folder path such as `C:\Users\<user>\AppData\Local\Google\Chrome\User Data\Default`; the app will now show the backend error if the `Bookmarks` file is not found.
+
+## 2026-04-21 - Future iteration plan updated from Iteration 4 lessons
+
+**Actions completed**
+
+- Added lessons-learned gates to the iteration plan for all remaining work.
+- Updated Iteration 5 with explicit lifecycle requirements for AI workflows: idle, generating, success, failure, retry/regenerate, visible final state, and before/after outcome assertions.
+- Updated Iteration 5 QA and team review expectations so tests must verify user-visible outcomes, not only API calls.
+- Updated Iteration 6 reliability scope to include lifecycle smoke testing, realistic local input, timeout/failure visibility, and no indefinite running/loading states.
+
+**Planning correction**
+
+- Future iterations must convert post-QA lessons into acceptance gates before implementation begins.
+- QA/team review must check that every async or side-effect workflow has a complete observable lifecycle and a visible user outcome.
+
+## 2026-04-21 - Iteration 5 started and implemented
+
+**Scope decision**
+
+- User approved the Iteration 5 design and allowed implementation on `master`.
+- Implemented OpenRouter workflow with simple V1 article context: bookmark title, URL, domain, and current summary.
+- Full article fetching/extraction is deferred; metadata-only prompting is the V1 strategy for this iteration.
+
+**TDD actions**
+
+- Backend RED:
+  - Added tests expecting AI summary generation to store a current summary.
+  - Added regeneration test expecting the current summary to be replaced.
+  - Added tag suggestion test expecting suggestions to be returned without persistence.
+  - Added upstream failure test expecting `upstream_error`.
+  - RED confirmed because existing endpoints still returned `ai_not_configured`.
+- Backend GREEN:
+  - Added mockable OpenRouter client.
+  - Added AI service for summary generation and tag suggestions.
+  - Wired `POST /items/:itemId/summary` and `POST /items/:itemId/tag-suggestions`.
+- Frontend RED:
+  - Added API client tests for OpenRouter settings, summary generation, and tag suggestions.
+  - Added App workflow tests for user-visible AI outcomes and visible failure state.
+  - RED confirmed because client methods and UI controls did not exist.
+- Frontend GREEN:
+  - Added OpenRouter API key/model controls.
+  - Added generate/regenerate summary action.
+  - Added suggest tags and confirm suggested tag flow.
+  - AI actions save current settings before calling generation/suggestion endpoints.
+
+**Lessons-learned gates applied**
+
+- AI workflows now assert user-visible outcomes, not only API calls.
+- AI actions avoid hidden ordering requirements by saving current settings before running.
+- Failure states are visible in the UI.
+- Tag suggestions are not persisted until the user confirms them.
+- API key remains write-only from the UI perspective; public settings expose only `apiKeyConfigured`.
+
+**Verification evidence**
+
+- `npm run test --workspace @my-web-bookmarks/desktop-api` passed on 2026-04-21:
+  - 8 test files passed.
+  - 33 tests passed.
+- `npm run test --workspace @my-web-bookmarks/web` passed on 2026-04-21:
+  - 2 test files passed.
+  - 8 tests passed.
+- `npm run typecheck` passed on 2026-04-21.
+- `npm run lint` passed on 2026-04-21.
+- `npm test` passed on 2026-04-21:
+  - Backend: 33 tests passed.
+  - Web: 8 tests passed.
+  - Shared: 3 tests passed.
+
+**Status**
+
+- Iteration 5 implementation is ready for QA and team review.

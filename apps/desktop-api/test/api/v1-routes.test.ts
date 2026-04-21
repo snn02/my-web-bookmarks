@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../src/app';
 import { createInMemoryDatabase, initializeDatabase } from '../../src/db/database';
 import { createItemRepository } from '../../src/domain/items/item-repository';
@@ -7,12 +7,32 @@ import { createSettingsRepository } from '../../src/domain/settings/settings-rep
 import { createSummaryRepository } from '../../src/domain/summaries/summary-repository';
 import { createTagRepository } from '../../src/domain/tags/tag-repository';
 
-function createApiTestContext() {
+function createOpenRouterFetchMock(content: string, status = 200) {
+  return vi.fn(async () => {
+    return new Response(
+      JSON.stringify({
+        choices: [
+          {
+            message: {
+              content
+            }
+          }
+        ]
+      }),
+      {
+        headers: { 'Content-Type': 'application/json' },
+        status
+      }
+    );
+  });
+}
+
+function createApiTestContext(openRouterFetch?: typeof fetch) {
   const db = createInMemoryDatabase();
   initializeDatabase(db);
 
   return {
-    app: createApp({ db }),
+    app: createApp({ db, openRouterFetch }),
     db,
     items: createItemRepository(db),
     settings: createSettingsRepository(db),
@@ -227,6 +247,108 @@ describe('summaries API', () => {
       .send({});
     expect(tagSuggestionsResponse.status).toBe(409);
     expect(tagSuggestionsResponse.body.error.code).toBe('ai_not_configured');
+  });
+
+  it('generates and stores an AI summary with configured OpenRouter settings', async () => {
+    const openRouterFetch = createOpenRouterFetchMock('Generated summary from OpenRouter.');
+    const { app, items, settings, summaries } = createApiTestContext(openRouterFetch);
+    settings.updateOpenRouterSettings({
+      apiKey: 'or-v1-secret',
+      model: 'openai/gpt-5-mini'
+    });
+    const item = items.upsertImportedItem({
+      sourceType: 'chrome_bookmark',
+      title: 'AI summary article',
+      url: 'https://example.com/ai-summary'
+    });
+
+    const response = await request(app).post(`/api/v1/items/${item.id}/summary`).send({});
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      itemId: item.id,
+      content: 'Generated summary from OpenRouter.',
+      updatedBy: 'ai'
+    });
+    expect(summaries.getSummary(item.id)?.content).toBe('Generated summary from OpenRouter.');
+    expect(openRouterFetch).toHaveBeenCalledWith(
+      'https://openrouter.ai/api/v1/chat/completions',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer or-v1-secret',
+          'Content-Type': 'application/json'
+        })
+      })
+    );
+    const openRouterFetchCalls = openRouterFetch.mock.calls as unknown as [string, RequestInit][];
+    expect(JSON.stringify(openRouterFetchCalls[0][1])).toContain('AI summary article');
+  });
+
+  it('replaces the current summary on AI regeneration', async () => {
+    const openRouterFetch = createOpenRouterFetchMock('Replacement summary.');
+    const { app, items, settings, summaries } = createApiTestContext(openRouterFetch);
+    settings.updateOpenRouterSettings({
+      apiKey: 'or-v1-secret',
+      model: 'openai/gpt-5-mini'
+    });
+    const item = items.upsertImportedItem({
+      sourceType: 'chrome_bookmark',
+      title: 'Regeneration article',
+      url: 'https://example.com/regenerate'
+    });
+    summaries.upsertSummary(item.id, 'Old summary.', 'openai/gpt-5-mini', 'openrouter', 'ai');
+
+    const response = await request(app).post(`/api/v1/items/${item.id}/summary`).send({});
+
+    expect(response.status).toBe(200);
+    expect(response.body.content).toBe('Replacement summary.');
+    expect(summaries.getSummary(item.id)?.content).toBe('Replacement summary.');
+  });
+
+  it('returns AI tag suggestions without persisting tags', async () => {
+    const openRouterFetch = createOpenRouterFetchMock('["frontend","research"]');
+    const { app, items, settings, tags } = createApiTestContext(openRouterFetch);
+    settings.updateOpenRouterSettings({
+      apiKey: 'or-v1-secret',
+      model: 'openai/gpt-5-mini'
+    });
+    const item = items.upsertImportedItem({
+      sourceType: 'chrome_bookmark',
+      title: 'Taggable article',
+      url: 'https://example.com/tags'
+    });
+
+    const response = await request(app).post(`/api/v1/items/${item.id}/tag-suggestions`).send({});
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      suggestions: [
+        { name: 'frontend' },
+        { name: 'research' }
+      ]
+    });
+    expect(tags.listTags()).toEqual([]);
+  });
+
+  it('maps OpenRouter failures to upstream_error', async () => {
+    const openRouterFetch = createOpenRouterFetchMock('bad gateway', 502);
+    const { app, items, settings } = createApiTestContext(openRouterFetch);
+    settings.updateOpenRouterSettings({
+      apiKey: 'or-v1-secret',
+      model: 'openai/gpt-5-mini'
+    });
+    const item = items.upsertImportedItem({
+      sourceType: 'chrome_bookmark',
+      title: 'Failure article',
+      url: 'https://example.com/failure'
+    });
+
+    const response = await request(app).post(`/api/v1/items/${item.id}/summary`).send({});
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.code).toBe('upstream_error');
+    expect(response.body.error.message).toBe('OpenRouter request failed.');
   });
 });
 

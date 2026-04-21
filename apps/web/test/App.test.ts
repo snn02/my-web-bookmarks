@@ -9,6 +9,14 @@ function ok(body: unknown) {
   };
 }
 
+function fail(message: string, status = 502) {
+  return {
+    ok: false,
+    status,
+    text: async () => message
+  };
+}
+
 function createInitialResponses() {
   return [
     ok({ status: 'ok' }),
@@ -221,5 +229,98 @@ describe('App', () => {
     await flushPromises();
 
     await vi.waitFor(() => expect(wrapper.text()).toContain('Chrome Bookmarks file was not found'));
+  });
+
+  it('generates summaries and confirms AI tag suggestions with visible outcomes', async () => {
+    const fetchMock = vi.fn();
+    for (const response of createInitialResponses()) {
+      fetchMock.mockResolvedValueOnce(response);
+    }
+    fetchMock
+      .mockResolvedValueOnce(
+        ok({
+          openRouter: { apiKeyConfigured: true, model: 'openai/gpt-5-mini' },
+          chromeProfilePath: 'C:\\Chrome\\Default'
+        })
+      )
+      .mockResolvedValueOnce(
+        ok({
+          itemId: 'itm_1',
+          content: 'Generated AI summary',
+          updatedAt: '2026-04-08T18:40:00Z',
+          updatedBy: 'ai'
+        })
+      )
+      .mockResolvedValueOnce(
+        ok({
+          openRouter: { apiKeyConfigured: true, model: 'openai/gpt-5-mini' },
+          chromeProfilePath: 'C:\\Chrome\\Default'
+        })
+      )
+      .mockResolvedValueOnce(ok({ suggestions: [{ name: 'research' }] }))
+      .mockResolvedValueOnce(ok({ id: 'tag_2', name: 'research' }))
+      .mockResolvedValueOnce(
+        ok({
+          id: 'itm_1',
+          tags: [
+            { id: 'tag_1', name: 'frontend' },
+            { id: 'tag_2', name: 'research' }
+          ]
+        })
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const wrapper = mount(App);
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
+
+    await wrapper.get('[aria-label="OpenRouter API key"]').setValue('or-v1-secret');
+    await wrapper.get('[aria-label="OpenRouter model"]').setValue('openai/gpt-5-mini');
+    await wrapper.get('[aria-label="Generate summary for Vue Guide"]').trigger('click');
+    await flushPromises();
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Generated AI summary'));
+    expect(wrapper.text()).not.toContain('or-v1-secret');
+
+    await wrapper.get('[aria-label="Suggest tags for Vue Guide"]').trigger('click');
+    await flushPromises();
+    await vi.waitFor(() => expect(wrapper.text()).toContain('research'));
+
+    await wrapper.get('[aria-label="Apply suggested tag research to Vue Guide"]').trigger('click');
+    await flushPromises();
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/settings', expect.objectContaining({ method: 'PATCH' }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/items/itm_1/summary',
+      expect.objectContaining({ method: 'POST' })
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/items/itm_1/tag-suggestions',
+      expect.objectContaining({ method: 'POST' })
+    );
+    await vi.waitFor(() => expect(wrapper.text()).toContain('research x'));
+  });
+
+  it('shows AI generation errors as a visible final state', async () => {
+    const fetchMock = vi.fn();
+    for (const response of createInitialResponses()) {
+      fetchMock.mockResolvedValueOnce(response);
+    }
+    fetchMock
+      .mockResolvedValueOnce(
+        ok({
+          openRouter: { apiKeyConfigured: false, model: null },
+          chromeProfilePath: 'C:\\Chrome\\Default'
+        })
+      )
+      .mockResolvedValueOnce(fail('OpenRouter request failed.'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const wrapper = mount(App);
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
+
+    await wrapper.get('[aria-label="Generate summary for Vue Guide"]').trigger('click');
+    await flushPromises();
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('OpenRouter request failed.'));
   });
 });

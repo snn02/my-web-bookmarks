@@ -62,6 +62,15 @@ export interface SyncStatus {
   error: string | null;
 }
 
+export interface OpenRouterSettingsPatch {
+  apiKey?: string;
+  model?: string;
+}
+
+export interface TagSuggestion {
+  name: string;
+}
+
 export async function fetchItems(filters: ItemFilters = {}): Promise<ItemListResponse> {
   const params = new URLSearchParams();
   if (filters.q) params.set('q', filters.q);
@@ -121,6 +130,32 @@ export async function saveChromeProfilePath(chromeProfilePath: string): Promise<
     body: JSON.stringify({ chromeProfilePath }),
     headers: jsonHeaders(),
     method: 'PATCH'
+  });
+}
+
+export async function saveOpenRouterSettings(
+  openRouter: OpenRouterSettingsPatch
+): Promise<PublicSettings> {
+  return requestJson(`${API_BASE_PATH}/settings`, {
+    body: JSON.stringify({ openRouter }),
+    headers: jsonHeaders(),
+    method: 'PATCH'
+  });
+}
+
+export async function generateSummary(itemId: string): Promise<Summary> {
+  return requestJson(`${API_BASE_PATH}/items/${itemId}/summary`, {
+    body: JSON.stringify({}),
+    headers: jsonHeaders(),
+    method: 'POST'
+  });
+}
+
+export async function suggestTags(itemId: string): Promise<{ suggestions: TagSuggestion[] }> {
+  return requestJson(`${API_BASE_PATH}/items/${itemId}/tag-suggestions`, {
+    body: JSON.stringify({}),
+    headers: jsonHeaders(),
+    method: 'POST'
   });
 }
 

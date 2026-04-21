@@ -581,22 +581,40 @@ An iteration can move to `accepted` only when:
   - Live AI generation remains deferred to Iteration 5.
   - Tag rename UI is explicitly not included in Iteration 4.
 
+## Lessons-Learned Gates For Remaining Iterations
+
+These gates were added after the Iteration 4 post-QA sync issue.
+
+- Any async user workflow must define the full observable lifecycle before implementation: start action, pending/running state, final success state, final failure state, visible error message, and data refresh behavior.
+- Any import, generation, sync, or mutation workflow must have a before/after acceptance assertion: what changed in the UI, what persisted data changed, or what user-visible failure explains why nothing changed.
+- Frontend tests must verify the user outcome, not only that a transport call happened.
+- Adjacent controls must not have hidden ordering requirements. If the expected path is "enter setting, then run action", the action must either persist the setting first or block with a clear message.
+- UI iterations that cross frontend/backend boundaries require a manual smoke pass against the running dev servers with realistic local input before acceptance.
+- Tester review must include at least one failure-mode check for each new workflow that can fail due to missing config, invalid local path, network failure, upstream failure, or timeout.
+
 ## Iteration 5: OpenRouter Settings And AI Workflows
 
-**Status:** planned
+**Status:** ready_for_test
+
+**Entry Notes**
+
+- Iteration 4 is accepted with post-QA lifecycle gates applied to future async workflows.
+- 2026-04-21: User approved the Iteration 5 design and explicitly allowed implementation on `master`.
 
 **Objective:** Add AI-generated summaries and tag suggestions while preserving local-first usability.
 
 **Scope**
 
-- [ ] Add OpenRouter client with configurable model.
-- [ ] Add settings UI for API key configured state and model choice.
-- [ ] Implement article content fetching/extraction strategy suitable for V1.
-- [ ] Implement `POST /items/:itemId/summary` to generate and store the current summary.
-- [ ] Implement `POST /items/:itemId/tag-suggestions` without automatic persistence.
-- [ ] Add frontend controls for generating/regenerating summaries.
-- [ ] Add frontend flow for reviewing AI tag suggestions and confirming selected tags.
-- [ ] Add clear AI error states for missing configuration and upstream failures.
+- [x] Add OpenRouter client with configurable model.
+- [x] Add settings UI for API key configured state and model choice.
+- [x] Implement article content fetching/extraction strategy suitable for V1.
+- [x] Implement `POST /items/:itemId/summary` to generate and store the current summary.
+- [x] Implement `POST /items/:itemId/tag-suggestions` without automatic persistence.
+- [x] Add frontend controls for generating/regenerating summaries.
+- [x] Add frontend flow for reviewing AI tag suggestions and confirming selected tags.
+- [x] Add clear AI error states for missing configuration and upstream failures.
+- [x] Define and implement the full observable lifecycle for each AI action: idle, generating, succeeded, failed, retry/regenerate.
+- [x] Ensure AI actions persist or validate current settings before generation so the user is not required to remember a separate Save step.
 
 **Primary Files**
 
@@ -614,6 +632,8 @@ An iteration can move to `accepted` only when:
 - AI endpoint tests verify `ai_not_configured`, `upstream_error`, successful summary persistence, and non-persistence of tag suggestions.
 - Prompt construction tests verify minimum required article context and expected output constraints.
 - Frontend tests cover settings redaction, generation states, failure states, and suggestion confirmation.
+- Frontend workflow tests assert user-visible outcomes after AI actions: generated summary appears, old current summary is replaced on regeneration, failed generation shows an actionable error, and accepted tag suggestions appear on the item.
+- Tests must include before/after assertions for every generation or suggestion-confirmation workflow.
 
 **Tester Review**
 
@@ -621,16 +641,64 @@ An iteration can move to `accepted` only when:
 - Test with configured API key and low-cost model: summary generation stores one current editable summary.
 - Test regeneration: old current summary is replaced.
 - Test tag suggestions: suggestions are shown but not saved until the user confirms them.
+- Test hidden-ordering risk: enter or change AI settings and immediately run an AI action; the UI must either save/validate settings automatically or show a clear blocker.
+- Test final-state visibility: every AI action must leave the user seeing success, failure, or a retryable error rather than an indefinite loading state.
+- Run one manual smoke pass with backend and web dev servers running together, using a realistic bookmark item and either a configured low-cost model or a mocked/stubbed upstream mode.
 
 **Team Review**
 
 - Confirm costs and model defaults are reasonable.
 - Confirm secrets are not logged or returned by API.
 - Confirm AI failures do not block bookmark processing.
+- Confirm frontend tests assert workflow outcomes instead of only API call wiring.
+- Confirm every AI workflow has explicit timeout, upstream failure, missing configuration, and retry/regenerate behavior.
 
 **Exit Result**
 
 - AI assists processing but remains optional and bounded by explicit user action.
+
+**Implementation Notes**
+
+- 2026-04-21: Added mockable OpenRouter chat completions client with configurable model and API key authorization.
+- 2026-04-21: Added backend AI service for summary generation and tag suggestions.
+- 2026-04-21: V1 article context strategy is metadata-only: title, URL, domain, and current summary. Full article extraction remains out of scope until a later explicit task.
+- 2026-04-21: `POST /items/:itemId/summary` now generates and stores one current AI summary; regeneration replaces the current summary.
+- 2026-04-21: `POST /items/:itemId/tag-suggestions` returns suggestions without persisting tags.
+- 2026-04-21: Web UI now includes OpenRouter API key/model controls, generate/regenerate summary, suggest tags, and confirm suggested tag flow.
+- 2026-04-21: AI actions save current OpenRouter settings before generation/suggestion to avoid hidden Save-before-action ordering.
+- 2026-04-21: AI failures are shown as visible final states; API keys remain write-only and are not rendered after save.
+
+**Verification Evidence**
+
+- 2026-04-21: Backend RED confirmed:
+  - AI summary generation tests failed while endpoints still returned `409 ai_not_configured`.
+  - Tag suggestion and upstream failure tests failed while endpoints were placeholders.
+- 2026-04-21: Backend GREEN confirmed:
+  - `npm run test --workspace @my-web-bookmarks/desktop-api`: 33 tests passed.
+- 2026-04-21: Frontend RED confirmed:
+  - API client test failed because AI client methods did not exist.
+  - App workflow tests failed because OpenRouter controls and AI action buttons did not exist.
+- 2026-04-21: Frontend GREEN confirmed:
+  - `npm run test --workspace @my-web-bookmarks/web`: 8 tests passed.
+- 2026-04-21: Full workspace verification passed:
+  - `npm run typecheck`: passed for all workspaces.
+  - `npm run lint`: passed for all workspaces.
+  - `npm test`: backend 33 tests passed, web 8 tests passed, shared 3 tests passed.
+
+**Tester Review Status**
+
+- Pending QA review.
+- Suggested QA checks:
+  - With no API key, confirm the app still loads bookmarks and AI actions show a visible failure.
+  - Enter an OpenRouter API key/model and immediately generate a summary without pressing Save AI first.
+  - Regenerate a summary and confirm the visible current summary is replaced.
+  - Suggest tags and confirm a suggestion; verify the tag is not attached until confirmation.
+  - Confirm the raw API key is not shown after save or generation.
+  - Confirm AI failures do not block manual bookmark processing.
+
+**Team Review Status**
+
+- Pending review of OpenRouter boundary, prompt/context scope, secret handling, AI lifecycle completeness, and whether metadata-only article context is acceptable for V1.
 
 ## Iteration 6: Reliability, Observability, Packaging Readiness
 
@@ -644,6 +712,7 @@ An iteration can move to `accepted` only when:
 - [ ] Add defensive handling for database corruption, migration failure, missing Chrome profile, network timeouts, and OpenRouter failures.
 - [ ] Add backup/export guidance for SQLite data.
 - [ ] Add smoke test script covering backend start, health, database init, and basic API calls.
+- [ ] Extend smoke coverage to include a frontend/backend lifecycle workflow with visible final state and before/after data assertion.
 - [ ] Add release checklist for local Windows usage.
 - [ ] Review whether desktop packaging is required for V1 or whether a local web/backend launch script is enough.
 - [ ] Update product and architecture docs with implementation decisions.
@@ -662,6 +731,7 @@ An iteration can move to `accepted` only when:
 - Smoke test script passes on a clean local checkout.
 - Failure-mode tests cover missing profile, failed migration, invalid settings, and upstream timeout.
 - Logging tests or assertions confirm secrets are not written to logs.
+- End-to-end smoke test or documented manual script verifies at least one full lifecycle workflow: action starts, reaches final state, data refreshes, and errors are visible when forced.
 - Full test suite, lint, and typecheck pass.
 
 **Tester Review**
@@ -669,12 +739,15 @@ An iteration can move to `accepted` only when:
 - Execute the release checklist on Windows.
 - Simulate common failure modes and confirm messages are actionable.
 - Confirm existing data survives app restart and repeated sync.
+- Confirm no main workflow can remain indefinitely in `running`/loading state without timeout, retry, or visible failure.
+- Confirm documented manual smoke scenarios include realistic local paths and realistic user inputs.
 
 **Team Review**
 
 - Confirm V1 is operationally supportable.
 - Confirm known limitations are documented.
 - Confirm remaining backlog is split into post-V1 work rather than hidden inside V1.
+- Confirm all accepted iterations since Iteration 4 include lessons-learned gates in their QA/team review notes.
 
 **Exit Result**
 

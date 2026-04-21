@@ -5,8 +5,11 @@ import {
   fetchItems,
   fetchSettings,
   fetchTags,
+  generateSummary,
   removeTagFromItem,
   saveChromeProfilePath,
+  saveOpenRouterSettings,
+  suggestTags,
   startBookmarkSync,
   updateItemStatus,
   updateSummary
@@ -44,6 +47,9 @@ describe('api client', () => {
     await removeTagFromItem('itm_1', 'tag_1');
     await updateSummary('itm_1', 'Edited summary');
     await saveChromeProfilePath('C:\\Chrome\\Default');
+    await saveOpenRouterSettings({ apiKey: 'or-v1-secret', model: 'openai/gpt-5-mini' });
+    await generateSummary('itm_1');
+    await suggestTags('itm_1');
     await startBookmarkSync();
     await fetchSettings();
     await fetchTags();
@@ -63,6 +69,26 @@ describe('api client', () => {
       body: JSON.stringify({ chromeProfilePath: 'C:\\Chrome\\Default' }),
       headers: { 'Content-Type': 'application/json' },
       method: 'PATCH'
+    });
+    expect(fetch).toHaveBeenCalledWith('/api/v1/settings', {
+      body: JSON.stringify({
+        openRouter: {
+          apiKey: 'or-v1-secret',
+          model: 'openai/gpt-5-mini'
+        }
+      }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH'
+    });
+    expect(fetch).toHaveBeenCalledWith('/api/v1/items/itm_1/summary', {
+      body: JSON.stringify({}),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST'
+    });
+    expect(fetch).toHaveBeenCalledWith('/api/v1/items/itm_1/tag-suggestions', {
+      body: JSON.stringify({}),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST'
     });
     expect(fetch).toHaveBeenCalledWith('/api/v1/sync/bookmarks', {
       body: JSON.stringify({}),
