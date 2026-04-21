@@ -48,6 +48,8 @@ C:\Users\<user>\AppData\Local\Google\Chrome\User Data\Default
 - Confirm the sync status reaches a final state.
 - Confirm imported bookmarks appear, or a visible error explains why import failed.
 - Confirm search, status filter, and status update still work after sync.
+- Confirm each item shows its current status in green.
+- Click `New`, `Read`, and `Archive` on one item and confirm the green active button moves to the selected status.
 
 ## AI Smoke Pass
 
@@ -58,12 +60,13 @@ C:\Users\<user>\AppData\Local\Google\Chrome\User Data\Default
 - Confirm a generated summary appears or a visible upstream/configuration error appears.
 - Press `Suggest tags`.
 - Confirm suggestions are not attached until one is explicitly selected.
+- If OpenRouter fails upstream, confirm the UI shows a readable troubleshooting message instead of raw JSON.
 - Confirm the raw API key is not shown after save or generation.
 
 ## Failure Modes
 
 - Use a missing Chrome profile path and confirm the app shows a file-not-found style error.
-- Disconnect or block OpenRouter access and confirm AI actions show an upstream failure.
+- Disconnect or block OpenRouter access and confirm AI actions show an upstream failure with user-readable guidance.
 - Repeat sync twice and confirm the app reaches a final state instead of staying in `running`.
 
 ## Logs

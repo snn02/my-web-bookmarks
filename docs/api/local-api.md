@@ -56,6 +56,12 @@ Common error codes:
 - `sync_already_running`
 - `upstream_error`
 
+Frontend behavior:
+
+- The API returns structured JSON errors for machine handling.
+- The web client renders user-readable messages instead of raw JSON payloads.
+- For `upstream_error` from AI endpoints, the web client should include guidance to check the OpenRouter API key, model name, network access, or provider availability.
+
 ## Resource Models
 
 ### Item

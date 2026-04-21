@@ -174,7 +174,7 @@ export async function startBookmarkSync(): Promise<SyncStatus> {
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = init ? await fetch(url, init) : await fetch(url);
   if (!response.ok) {
-    throw new Error(await response.text());
+    throw new Error(await parseApiErrorMessage(response));
   }
   return (await response.json()) as T;
 }
@@ -182,10 +182,32 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
 async function requestNoContent(url: string, init?: RequestInit): Promise<void> {
   const response = init ? await fetch(url, init) : await fetch(url);
   if (!response.ok) {
-    throw new Error(await response.text());
+    throw new Error(await parseApiErrorMessage(response));
   }
 }
 
 function jsonHeaders(): Record<string, string> {
   return { 'Content-Type': 'application/json' };
+}
+
+async function parseApiErrorMessage(response: Response): Promise<string> {
+  const text = await response.text();
+  try {
+    const parsed = JSON.parse(text) as {
+      error?: {
+        code?: string;
+        message?: string;
+      };
+    };
+    if (parsed.error?.code === 'upstream_error') {
+      return `${parsed.error.message ?? 'OpenRouter request failed.'} Check API key, model name, network access, or provider availability.`;
+    }
+    if (parsed.error?.message) {
+      return parsed.error.message;
+    }
+  } catch {
+    // Fall through to the plain response body.
+  }
+
+  return text || `Request failed with status ${response.status}.`;
 }

@@ -1034,3 +1034,73 @@ This log records implementation actions, planning decisions, verification eviden
 - Update `docs` for every fix that changes documented functionality, setup, storage, sync, AI behavior, smoke tests, logs, or user workflows.
 - Add or update automated verification when behavior changes.
 - Keep V1 feedback status separate from the original iteration plan while preserving major lessons in the action log.
+
+## 2026-04-21 - V1 feedback batch 1 scoped
+
+**Reported feedback**
+
+- V1-FIX-001: Status buttons do not make current status visually obvious.
+- V1-FIX-002: AI upstream errors show raw JSON in the UI.
+- V1-FIX-003: Tag assignment to a specific item is unclear.
+
+**Scope decision**
+
+- Implement only V1-FIX-001 and V1-FIX-002 in this batch.
+- Defer V1-FIX-003 until the item-level tag UI is discussed separately.
+- Update docs for every behavior change in this batch.
+
+## 2026-04-21 - V1-FIX-001 and V1-FIX-002 implemented
+
+**Scope delivered**
+
+- V1-FIX-001: the current item status is now visible in green text, and the matching `New`, `Read`, or `Archive` button is green.
+- V1-FIX-002: frontend API errors are converted from structured backend JSON into user-readable messages; `upstream_error` includes OpenRouter troubleshooting guidance.
+- V1-FIX-003 remains deferred for a separate item-level tag assignment UI discussion.
+
+**TDD evidence**
+
+- RED: web tests failed because status buttons did not include the active status class and AI errors surfaced raw JSON.
+- GREEN: web tests passed after adding active status rendering and API error message parsing.
+
+**Documentation updated**
+
+- `docs/development/manual-smoke-scenarios.md`: added manual checks for active green status and readable upstream AI errors.
+- `docs/release/windows-v1-checklist.md`: added V1 release checks for status action visibility and non-JSON AI failure messages.
+- `docs/api/local-api.md`: documented frontend handling of structured API errors and `upstream_error` guidance.
+
+**Verification evidence**
+
+- `npm run typecheck` passed on 2026-04-21.
+- `npm run lint` passed on 2026-04-21.
+- `npm test` passed on 2026-04-21:
+  - Smoke helpers: 8 tests passed.
+  - Backend: 39 tests passed.
+  - Web: 11 tests passed.
+  - Shared: 3 tests passed.
+
+**Lessons learned**
+
+- Status-changing actions need visible state feedback, not only a successful API mutation.
+- Raw backend error payloads should be translated at the client boundary before reaching the UI.
+- Feedback batches should explicitly preserve deferred UX topics so a small bug-fix pass does not accidentally make product decisions.
+
+## 2026-04-21 - V1 feedback batch 2 planned
+
+**Reported feedback**
+
+- V1-FIX-004: generated summary is displayed above the edit field instead of being inserted directly into the editable textarea.
+- V1-FIX-005: generated summary should be in Russian.
+- V1-FIX-006: `Suggest tags` returns an OpenRouter upstream error even though summary generation succeeds with the same saved settings.
+
+**Initial investigation**
+
+- V1-FIX-004 root cause: `syncSummaryDrafts` preserves an existing draft value over the newly generated `item.summary.content`, while the template also renders a separate summary preview above the textarea.
+- V1-FIX-005 root cause: the summary system prompt is English and does not require Russian output.
+- V1-FIX-006 evidence: `data/logs/desktop-api.log` shows `ai.summary.generated` succeeds for `google/gemma-4-31b-it:free`, while `ai.tag_suggestions.failed` fails shortly after for the same model. The key/model are therefore not generally broken; tag suggestions need targeted OpenRouter diagnostics and a more tolerant request/response strategy.
+
+**Planned scope**
+
+- Update docs for summary editing behavior, Russian summary language, and tag suggestion failure diagnostics before marking the batch complete.
+- Implement V1-FIX-004 and V1-FIX-005 with direct regression tests.
+- For V1-FIX-006, first add safe diagnostics that capture OpenRouter HTTP status and response-shape context without logging API keys or full provider payloads; then adjust the tag suggestion prompt/parsing based on evidence.
+- Keep V1-FIX-003 deferred until the separate tag assignment UI discussion.

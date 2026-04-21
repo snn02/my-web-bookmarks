@@ -329,13 +329,36 @@ function delay(milliseconds: number): Promise<void> {
           <h2>{{ item.title }}</h2>
           <a :href="item.url" target="_blank" rel="noreferrer">Open original</a>
           <p class="url">{{ item.url }}</p>
-          <p class="meta">Status: {{ item.status }} | Imported: {{ item.importedAt }}</p>
+          <p class="meta">
+            Status: <span class="status-current">{{ item.status }}</span> | Imported: {{ item.importedAt }}
+          </p>
         </div>
 
         <div class="actions">
-          <button :aria-label="`Mark ${item.title} as new`" type="button" @click="setStatus(item, 'new')">New</button>
-          <button :aria-label="`Mark ${item.title} as read`" type="button" @click="setStatus(item, 'read')">Read</button>
-          <button :aria-label="`Archive ${item.title}`" type="button" @click="setStatus(item, 'archived')">Archive</button>
+          <button
+            :aria-label="`Mark ${item.title} as new`"
+            :class="{ 'status-active': item.status === 'new' }"
+            type="button"
+            @click="setStatus(item, 'new')"
+          >
+            New
+          </button>
+          <button
+            :aria-label="`Mark ${item.title} as read`"
+            :class="{ 'status-active': item.status === 'read' }"
+            type="button"
+            @click="setStatus(item, 'read')"
+          >
+            Read
+          </button>
+          <button
+            :aria-label="`Archive ${item.title}`"
+            :class="{ 'status-active': item.status === 'archived' }"
+            type="button"
+            @click="setStatus(item, 'archived')"
+          >
+            Archive
+          </button>
         </div>
 
         <div class="tags">
@@ -474,6 +497,16 @@ button:disabled {
 
 .sync-status {
   color: #334155;
+}
+
+.status-current {
+  color: #18743a;
+  font-weight: 700;
+}
+
+.status-active {
+  background: #18743a;
+  border-color: #18743a;
 }
 
 .error {

@@ -96,4 +96,24 @@ describe('api client', () => {
       method: 'POST'
     });
   });
+
+  it('turns API error payloads into user-readable errors', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        text: async () =>
+          JSON.stringify({
+            error: {
+              code: 'upstream_error',
+              message: 'OpenRouter request failed.'
+            }
+          })
+      })
+    );
+
+    await expect(suggestTags('itm_1')).rejects.toThrow(
+      'OpenRouter request failed. Check API key, model name, network access, or provider availability.'
+    );
+  });
 });

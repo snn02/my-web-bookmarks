@@ -101,6 +101,7 @@ describe('App', () => {
     expect(wrapper.text()).toContain('Vue Guide');
     expect(wrapper.text()).toContain('Useful summary');
     expect(wrapper.text()).toContain('frontend');
+    expect(wrapper.get('[aria-label="Mark Vue Guide as new"]').classes()).toContain('status-active');
   });
 
   it('shows backend unavailable state when health check fails', async () => {
@@ -174,6 +175,7 @@ describe('App', () => {
 
     await wrapper.get('[aria-label="Mark Vue Guide as read"]').trigger('click');
     await flushPromises();
+    expect(wrapper.get('[aria-label="Mark Vue Guide as read"]').classes()).toContain('status-active');
     await wrapper.get('[aria-label="New tag name"]').setValue('reading');
     await wrapper.get('[aria-label="Create tag"]').trigger('click');
     await flushPromises();
@@ -322,6 +324,7 @@ describe('App', () => {
     await flushPromises();
 
     await vi.waitFor(() => expect(wrapper.text()).toContain('OpenRouter request failed.'));
+    expect(wrapper.text()).not.toContain('{"error"');
   });
 
   it('preserves an existing configured API key when generating with an empty key field', async () => {
