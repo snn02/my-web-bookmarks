@@ -350,6 +350,27 @@ describe('summaries API', () => {
     expect(response.body.error.code).toBe('upstream_error');
     expect(response.body.error.message).toBe('OpenRouter request failed.');
   });
+
+  it('maps OpenRouter network errors to upstream_error', async () => {
+    const openRouterFetch = vi.fn(async () => {
+      throw new TypeError('network failure');
+    });
+    const { app, items, settings } = createApiTestContext(openRouterFetch);
+    settings.updateOpenRouterSettings({
+      apiKey: 'or-v1-secret',
+      model: 'openai/gpt-5-mini'
+    });
+    const item = items.upsertImportedItem({
+      sourceType: 'chrome_bookmark',
+      title: 'Network failure article',
+      url: 'https://example.com/network-failure'
+    });
+
+    const response = await request(app).post(`/api/v1/items/${item.id}/summary`).send({});
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.code).toBe('upstream_error');
+  });
 });
 
 describe('settings API', () => {

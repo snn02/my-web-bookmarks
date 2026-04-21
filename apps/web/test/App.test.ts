@@ -323,4 +323,97 @@ describe('App', () => {
 
     await vi.waitFor(() => expect(wrapper.text()).toContain('OpenRouter request failed.'));
   });
+
+  it('preserves an existing configured API key when generating with an empty key field', async () => {
+    const fetchMock = vi.fn();
+    const initialResponses = createInitialResponses();
+    initialResponses[3] = ok({
+      openRouter: { apiKeyConfigured: true, model: 'openai/gpt-5-mini' },
+      chromeProfilePath: 'C:\\Chrome\\Default'
+    });
+    for (const response of initialResponses) {
+      fetchMock.mockResolvedValueOnce(response);
+    }
+    fetchMock
+      .mockResolvedValueOnce(
+        ok({
+          openRouter: { apiKeyConfigured: true, model: 'openai/gpt-5-mini' },
+          chromeProfilePath: 'C:\\Chrome\\Default'
+        })
+      )
+      .mockResolvedValueOnce(
+        ok({
+          itemId: 'itm_1',
+          content: 'Generated with existing key',
+          updatedAt: '2026-04-08T18:40:00Z',
+          updatedBy: 'ai'
+        })
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const wrapper = mount(App);
+    await vi.waitFor(() => expect(wrapper.text()).toContain('OpenRouter: configured'));
+
+    await wrapper.get('[aria-label="Generate summary for Vue Guide"]').trigger('click');
+    await flushPromises();
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/settings', {
+      body: JSON.stringify({
+        openRouter: {
+          model: 'openai/gpt-5-mini'
+        }
+      }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH'
+    });
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Generated with existing key'));
+  });
+
+  it('attaches an existing tag when confirming a matching AI suggestion', async () => {
+    const fetchMock = vi.fn();
+    const initialResponses = createInitialResponses();
+    initialResponses[2] = ok({
+      tags: [
+        { id: 'tag_1', name: 'frontend' },
+        { id: 'tag_2', name: 'research' }
+      ]
+    });
+    for (const response of initialResponses) {
+      fetchMock.mockResolvedValueOnce(response);
+    }
+    fetchMock
+      .mockResolvedValueOnce(
+        ok({
+          openRouter: { apiKeyConfigured: true, model: 'openai/gpt-5-mini' },
+          chromeProfilePath: 'C:\\Chrome\\Default'
+        })
+      )
+      .mockResolvedValueOnce(ok({ suggestions: [{ name: 'research' }] }))
+      .mockResolvedValueOnce(
+        ok({
+          id: 'itm_1',
+          tags: [
+            { id: 'tag_1', name: 'frontend' },
+            { id: 'tag_2', name: 'research' }
+          ]
+        })
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const wrapper = mount(App);
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
+
+    await wrapper.get('[aria-label="Suggest tags for Vue Guide"]').trigger('click');
+    await flushPromises();
+    await wrapper.get('[aria-label="Apply suggested tag research to Vue Guide"]').trigger('click');
+    await flushPromises();
+
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/v1/tags', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/items/itm_1/tags', {
+      body: JSON.stringify({ tagId: 'tag_2' }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST'
+    });
+    await vi.waitFor(() => expect(wrapper.text()).toContain('research x'));
+  });
 });

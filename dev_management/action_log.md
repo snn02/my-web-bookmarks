@@ -748,3 +748,47 @@ This log records implementation actions, planning decisions, verification eviden
 **Status**
 
 - Iteration 5 implementation is ready for QA and team review.
+
+## 2026-04-21 - Iteration 5 QA and team review
+
+**QA findings**
+
+- Finding: OpenRouter network exceptions were not normalized by the client.
+  - Impact: a rejected `fetch` could surface as an unhandled 500 instead of the planned `upstream_error`.
+  - Fix: wrapped fetch and JSON parsing in the OpenRouter client and mapped failures to `OpenRouterRequestError`.
+  - Regression test: backend test now verifies network failures return `502 upstream_error`.
+- Finding: AI actions saved `apiKey: ""` when the password field was empty.
+  - Impact: a user with an already configured API key could click Generate and accidentally clear the saved key.
+  - Fix: frontend sends `apiKey` only when the user enters a non-empty replacement key.
+  - Regression test: web test now verifies generation with an existing configured key sends only the model.
+- Finding: confirming an AI suggestion always attempted to create a new tag.
+  - Impact: if the suggested tag already existed, confirmation would hit duplicate-tag conflict instead of attaching the existing tag.
+  - Fix: frontend now reuses an existing matching tag before creating a new one.
+  - Regression test: web test now verifies an existing matching tag is attached without `POST /tags`.
+
+**Team review**
+
+- OpenRouter integration is isolated behind `apps/desktop-api/src/integrations/openrouter/openrouter-client.ts`.
+- AI domain logic is isolated in `apps/desktop-api/src/domain/ai/ai-service.ts`.
+- Public settings continue to redact the raw API key.
+- AI workflows have outcome-based frontend tests covering success, visible failure, settings preservation, and suggestion confirmation.
+- Metadata-only prompt context is acceptable for V1; full article extraction remains an explicit future task.
+
+**Verification evidence**
+
+- `npm run typecheck` passed on 2026-04-21.
+- `npm run lint` passed on 2026-04-21.
+- `npm test` passed on 2026-04-21:
+  - Backend: 34 tests passed.
+  - Web: 10 tests passed.
+  - Shared: 3 tests passed.
+
+**Residual risk**
+
+- Live OpenRouter smoke with a real API key and network access was not performed in this environment.
+- User verification should include one real low-cost model run before relying on AI workflows for daily use.
+
+**Decision**
+
+- Iteration 5 is accepted.
+- Iteration 6 can start with reliability, observability, and packaging readiness.

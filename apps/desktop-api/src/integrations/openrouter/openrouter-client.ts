@@ -31,23 +31,33 @@ export function createOpenRouterClient({
   model
 }: OpenRouterClientOptions) {
   async function complete(messages: OpenRouterMessage[]): Promise<string> {
-    const response = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
-      body: JSON.stringify({
-        messages,
-        model
-      }),
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      method: 'POST'
-    });
+    let response: Response;
+    try {
+      response = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
+        body: JSON.stringify({
+          messages,
+          model
+        }),
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        method: 'POST'
+      });
+    } catch {
+      throw new OpenRouterRequestError();
+    }
 
     if (!response.ok) {
       throw new OpenRouterRequestError();
     }
 
-    const body = (await response.json()) as OpenRouterResponse;
+    let body: OpenRouterResponse;
+    try {
+      body = (await response.json()) as OpenRouterResponse;
+    } catch {
+      throw new OpenRouterRequestError();
+    }
     const content = body.choices?.[0]?.message?.content;
     if (typeof content !== 'string' || !content.trim()) {
       throw new OpenRouterRequestError();

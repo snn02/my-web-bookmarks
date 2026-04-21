@@ -142,10 +142,11 @@ async function saveProfilePath(): Promise<void> {
 }
 
 async function saveAiSettings(): Promise<void> {
-  const settings = await saveOpenRouterSettings({
-    apiKey: openRouterApiKey.value,
+  const openRouterPatch = {
+    ...(openRouterApiKey.value.trim() ? { apiKey: openRouterApiKey.value.trim() } : {}),
     model: openRouterModel.value
-  });
+  };
+  const settings = await saveOpenRouterSettings(openRouterPatch);
   openRouterConfigured.value = settings.openRouter.apiKeyConfigured;
   openRouterModel.value = settings.openRouter.model ?? openRouterModel.value;
   openRouterApiKey.value = '';
@@ -215,8 +216,13 @@ async function loadTagSuggestions(item: BookmarkItem): Promise<void> {
 async function applySuggestedTag(item: BookmarkItem, suggestion: TagSuggestion): Promise<void> {
   aiErrorMessage.value = '';
   try {
-    const tag = await createTag(suggestion.name);
-    tags.value = [...tags.value, tag].sort((left, right) => left.name.localeCompare(right.name));
+    const existingTag = tags.value.find(
+      (tag) => tag.name.toLowerCase() === suggestion.name.toLowerCase()
+    );
+    const tag = existingTag ?? (await createTag(suggestion.name));
+    if (!existingTag) {
+      tags.value = [...tags.value, tag].sort((left, right) => left.name.localeCompare(right.name));
+    }
     const result = await attachTagToItem(item.id, tag.id);
     replaceItem({ ...item, tags: result.tags });
     tagSuggestionsByItemId.value = {

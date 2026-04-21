@@ -594,7 +594,7 @@ These gates were added after the Iteration 4 post-QA sync issue.
 
 ## Iteration 5: OpenRouter Settings And AI Workflows
 
-**Status:** ready_for_test
+**Status:** accepted
 
 **Entry Notes**
 
@@ -667,6 +667,9 @@ These gates were added after the Iteration 4 post-QA sync issue.
 - 2026-04-21: Web UI now includes OpenRouter API key/model controls, generate/regenerate summary, suggest tags, and confirm suggested tag flow.
 - 2026-04-21: AI actions save current OpenRouter settings before generation/suggestion to avoid hidden Save-before-action ordering.
 - 2026-04-21: AI failures are shown as visible final states; API keys remain write-only and are not rendered after save.
+- 2026-04-21: QA review fixed OpenRouter network exception mapping so fetch/json failures return `upstream_error` instead of an unhandled 500.
+- 2026-04-21: QA review fixed OpenRouter settings save so an empty password field preserves an already configured API key instead of clearing it during AI actions.
+- 2026-04-21: QA review fixed suggested tag confirmation so an existing tag is attached instead of attempting duplicate tag creation.
 
 **Verification Evidence**
 
@@ -684,21 +687,33 @@ These gates were added after the Iteration 4 post-QA sync issue.
   - `npm run typecheck`: passed for all workspaces.
   - `npm run lint`: passed for all workspaces.
   - `npm test`: backend 33 tests passed, web 8 tests passed, shared 3 tests passed.
+- 2026-04-21: QA/team review verification passed after fixes:
+  - `npm run typecheck`: passed for all workspaces.
+  - `npm run lint`: passed for all workspaces.
+  - `npm test`: backend 34 tests passed, web 10 tests passed, shared 3 tests passed.
 
 **Tester Review Status**
 
-- Pending QA review.
-- Suggested QA checks:
-  - With no API key, confirm the app still loads bookmarks and AI actions show a visible failure.
-  - Enter an OpenRouter API key/model and immediately generate a summary without pressing Save AI first.
-  - Regenerate a summary and confirm the visible current summary is replaced.
-  - Suggest tags and confirm a suggestion; verify the tag is not attached until confirmation.
-  - Confirm the raw API key is not shown after save or generation.
-  - Confirm AI failures do not block manual bookmark processing.
+- Accepted on 2026-04-21.
+- QA review covered:
+  - no-key and upstream failure states are visible and do not block manual bookmark processing.
+  - generation/regeneration stores one visible current summary.
+  - tag suggestions are not persisted until confirmation.
+  - confirming a suggestion attaches either a newly created tag or an existing matching tag.
+  - raw API key is not rendered after save or generation.
+  - empty OpenRouter API key input does not clear an already configured key.
+- Live OpenRouter smoke with a real key/network remains an external follow-up for user verification; automated and mock-backed lifecycle coverage passed.
 
 **Team Review Status**
 
-- Pending review of OpenRouter boundary, prompt/context scope, secret handling, AI lifecycle completeness, and whether metadata-only article context is acceptable for V1.
+- Accepted on 2026-04-21.
+- Review notes:
+  - OpenRouter boundary is isolated behind a mockable client.
+  - Secrets remain backend-only; public settings expose only `apiKeyConfigured` and model.
+  - AI workflows have visible final states and outcome-based tests.
+  - Fetch, non-OK response, and invalid JSON/content from OpenRouter map to `upstream_error`.
+  - Metadata-only article context is accepted for V1, with full article extraction deferred.
+  - Residual operational risk: live OpenRouter behavior and model cost/quality need real-key smoke testing before broader daily use.
 
 ## Iteration 6: Reliability, Observability, Packaging Readiness
 
