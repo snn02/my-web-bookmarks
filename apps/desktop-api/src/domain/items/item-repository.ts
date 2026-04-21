@@ -4,6 +4,7 @@ import { nowIso } from '../time';
 import { domainFromUrl, normalizeUrl } from './normalize-url';
 
 export type ItemStatus = 'new' | 'read' | 'archived';
+export type ItemSort = 'importedAt:desc' | 'importedAt:asc' | 'updatedAt:desc' | 'updatedAt:asc';
 
 export interface TagPreview {
   id: string;
@@ -45,6 +46,7 @@ export interface ListItemsOptions {
   limit: number;
   offset: number;
   q?: string;
+  sort?: ItemSort;
   status?: ItemStatus;
   tagIds?: string[];
 }
@@ -242,13 +244,14 @@ export function createItemRepository(db: AppDatabase) {
     }
 
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const orderBy = toOrderBy(options.sort ?? 'importedAt:desc');
     const rows = db
       .prepare(
         `
           SELECT items.*
           FROM items
           ${whereSql}
-          ORDER BY imported_at DESC
+          ORDER BY ${orderBy}
           LIMIT ? OFFSET ?
         `
       )
@@ -271,4 +274,17 @@ export function createItemRepository(db: AppDatabase) {
     updateStatus,
     upsertImportedItem
   };
+}
+
+function toOrderBy(sort: ItemSort): string {
+  switch (sort) {
+    case 'importedAt:asc':
+      return 'imported_at ASC';
+    case 'updatedAt:desc':
+      return 'updated_at DESC';
+    case 'updatedAt:asc':
+      return 'updated_at ASC';
+    case 'importedAt:desc':
+      return 'imported_at DESC';
+  }
 }

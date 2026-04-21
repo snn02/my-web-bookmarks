@@ -268,3 +268,123 @@ This log records implementation actions, planning decisions, verification eviden
 - Implement HTTP routes over the existing repositories.
 - Add common validation and error response handling first.
 - Keep Chrome sync implementation and live AI calls out of Iteration 2.
+
+## 2026-04-21 - Iteration 2 started
+
+**Goal**
+
+- Expose the accepted repository layer through the stable `/api/v1` HTTP JSON contract for items, tags, summaries, and settings.
+
+**Scope decision**
+
+- Implement items, tags, summaries, settings, and AI placeholder endpoints.
+- Keep Chrome bookmark sync endpoints out of this iteration because Chrome import and async sync are owned by Iteration 3.
+
+**Planned TDD slices**
+
+- API route tests for item list/detail/status update and validation errors.
+- API route tests for tag create/rename/delete/attach/detach and conflict handling.
+- API route tests for current summary read/manual edit and AI summary placeholder.
+- API route tests for settings redaction and patch behavior.
+- Common error response helper for `validation_error`, `not_found`, `conflict`, and `ai_not_configured`.
+
+**Actions completed**
+
+- Added API contract tests for:
+  - item list/detail/status update
+  - item validation and not-found errors
+  - tag create/list/rename/delete
+  - item tag attach/detach
+  - duplicate tag conflict handling
+  - current summary read/manual edit
+  - AI summary and tag suggestion placeholders
+  - OpenRouter settings redaction
+- Confirmed RED state: new API route tests returned 404 for all new endpoints before implementation.
+- Implemented injectable database support in `createApp`.
+- Implemented common API error sender.
+- Implemented items, tags, summaries, settings, and AI placeholder endpoints.
+- Added `getTag` and `listTags` to the tag repository for route support.
+
+**Verification evidence**
+
+- Focused API route test passed on 2026-04-21:
+  - `apps/desktop-api/test/api/v1-routes.test.ts`: 8 tests passed.
+- Backend test suite passed on 2026-04-21:
+  - 5 test files passed.
+  - 19 tests passed.
+- `npm run typecheck` passed on 2026-04-21.
+- `npm run lint` passed on 2026-04-21.
+- `npm test` passed on 2026-04-21:
+  - Backend: 19 tests passed.
+  - Web: 2 tests passed.
+  - Shared: 3 tests passed.
+
+**Status**
+
+- Iteration 2 implementation is ready for tester review and team review.
+
+**Next review focus**
+
+- Compare implemented routes with `docs/api/local-api.md`.
+- Confirm validation errors are specific enough for frontend use.
+- Confirm repository layer remains hidden behind the HTTP API.
+- Confirm Chrome sync remains cleanly deferred to Iteration 3.
+
+## 2026-04-21 - Iteration 2 QA and team review
+
+**QA actions**
+
+- Ran full workspace verification:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm test`
+- Reviewed API contract tests as HTTP-level QA with repository-seeded data.
+- Confirmed covered workflows:
+  - item list/detail/status update
+  - tag create/list/rename/attach/detach/delete
+  - duplicate tag conflict
+  - summary read/manual edit
+  - AI placeholder errors
+  - settings redaction
+
+**Team review actions**
+
+- Compared implemented routes with `docs/api/local-api.md`.
+- Reviewed validation and error response behavior.
+- Confirmed repository layer remains hidden behind HTTP routes.
+- Confirmed Chrome sync routes are intentionally deferred to Iteration 3.
+
+**Team review finding**
+
+- `GET /items` did not implement the documented `sort` query parameter.
+
+**Follow-up implemented**
+
+- Added a failing API contract test for `sort=importedAt:asc`, `sort=updatedAt:desc`, and unsupported sort rejection.
+- Implemented item sort support in `apps/desktop-api/src/domain/items/item-repository.ts`.
+- Added sort validation in `apps/desktop-api/src/app.ts`.
+- Re-ran focused API tests and full workspace verification.
+
+**Final verification evidence**
+
+- Focused API route test passed on 2026-04-21:
+  - `apps/desktop-api/test/api/v1-routes.test.ts`: 9 tests passed.
+- `npm run typecheck` passed on 2026-04-21.
+- `npm run lint` passed on 2026-04-21.
+- `npm test` passed on 2026-04-21:
+  - Backend: 20 tests passed.
+  - Web: 2 tests passed.
+  - Shared: 3 tests passed.
+
+**Decision**
+
+- Iteration 2 is accepted.
+- Manual HTTP smoke with persistent seeded data is deferred until file-backed database wiring exists; current API contract tests provide HTTP-level coverage.
+- Iteration 3 can start with Chrome bookmark parser fixtures, read-only import, and sync status orchestration.
+
+**Iteration 3 preparation**
+
+- Create Chrome bookmark JSON fixtures.
+- Implement parser and URL deduplication through the existing item repository.
+- Add sync active-run protection and status endpoints.
+- Keep local Chrome bookmark access read-only.

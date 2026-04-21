@@ -271,7 +271,7 @@ An iteration can move to `accepted` only when:
 
 ## Iteration 2: Local API For Items, Tags, Summaries, And Settings
 
-**Status:** planned
+**Status:** accepted
 
 **Entry Notes**
 
@@ -279,20 +279,21 @@ An iteration can move to `accepted` only when:
 - Use existing repositories from `apps/desktop-api/src/domain/*` behind HTTP routes.
 - Start with API contract tests for validation errors, not-found handling, tag conflicts, settings redaction, and item list filtering.
 - Keep live Chrome import and live AI calls out of Iteration 2.
+- 2026-04-21: Iteration 2 started. Scope remains focused on items, tags, summaries, settings, and AI placeholder endpoints; Chrome sync endpoints stay for Iteration 3.
 
 **Objective:** Implement the stable `/api/v1` contract without Chrome import or live AI calls yet.
 
 **Scope**
 
-- [ ] Implement common request validation and error response shape.
-- [ ] Implement `GET /items` with search, status filter, tag filter, pagination, and sorting.
-- [ ] Implement `GET /items/:itemId`.
-- [ ] Implement `PATCH /items/:itemId` for status only.
-- [ ] Implement `GET /tags`, `POST /tags`, `PATCH /tags/:tagId`, `DELETE /tags/:tagId`.
-- [ ] Implement `POST /items/:itemId/tags` and `DELETE /items/:itemId/tags/:tagId`.
-- [ ] Implement `GET /items/:itemId/summary` and `PATCH /items/:itemId/summary`.
-- [ ] Implement `GET /settings` and `PATCH /settings`.
-- [ ] Keep AI endpoints present as explicit `ai_not_configured` or controlled stub behavior until Iteration 5.
+- [x] Implement common request validation and error response shape.
+- [x] Implement `GET /items` with search, status filter, tag filter, pagination, and sorting.
+- [x] Implement `GET /items/:itemId`.
+- [x] Implement `PATCH /items/:itemId` for status only.
+- [x] Implement `GET /tags`, `POST /tags`, `PATCH /tags/:tagId`, `DELETE /tags/:tagId`.
+- [x] Implement `POST /items/:itemId/tags` and `DELETE /items/:itemId/tags/:tagId`.
+- [x] Implement `GET /items/:itemId/summary` and `PATCH /items/:itemId/summary`.
+- [x] Implement `GET /settings` and `PATCH /settings`.
+- [x] Keep AI endpoints present as explicit `ai_not_configured` or controlled stub behavior until Iteration 5.
 
 **Primary Files**
 
@@ -325,9 +326,62 @@ An iteration can move to `accepted` only when:
 
 - The backend API contract is usable for frontend development and stable enough for future implementation behind it.
 
+**Implementation Notes**
+
+- 2026-04-21: Implemented V1 HTTP routes over the accepted repository layer.
+- 2026-04-21: `createApp` now accepts an injectable SQLite database for API tests and initializes an in-memory database by default.
+- 2026-04-21: Chrome sync endpoints remain intentionally out of scope for Iteration 2 and will be handled in Iteration 3.
+
+**Verification Evidence**
+
+- 2026-04-21: RED confirmed before implementation:
+  - focused API route test file failed with 404 responses for all new endpoints.
+- 2026-04-21: Focused API route tests passed:
+  - `apps/desktop-api/test/api/v1-routes.test.ts`: 8 tests passed.
+- 2026-04-21: Full backend test suite passed:
+  - 5 test files passed.
+  - 19 backend tests passed.
+- 2026-04-21: Full workspace verification passed:
+  - `npm run typecheck`: passed for all workspaces.
+  - `npm run lint`: passed for all workspaces.
+  - `npm test`: backend 19 tests passed, web 2 tests passed, shared 3 tests passed.
+- 2026-04-21: QA/team review fix added `GET /items` sort support:
+  - focused RED: API sort test failed because `sort=importedAt:asc` was ignored.
+  - focused GREEN: API route test file passed with 9 tests.
+  - final `npm test`: backend 20 tests passed, web 2 tests passed, shared 3 tests passed.
+  - final `npm run typecheck`: passed for all workspaces.
+  - final `npm run lint`: passed for all workspaces.
+
+**Tester Review Status**
+
+- Accepted on 2026-04-21.
+- HTTP-level QA is covered by API contract tests with repository-seeded data:
+  - item list/detail/status update through HTTP
+  - tag create/rename/attach/detach/delete through HTTP
+  - settings responses never include raw OpenRouter API key
+  - AI placeholder endpoints return `ai_not_configured`
+  - item list supports `sort=importedAt:asc`, `sort=updatedAt:desc`, and rejects unsupported sort values
+
+**Team Review Status**
+
+- Accepted on 2026-04-21.
+- Review notes:
+  - Implemented routes align with the Iteration 2 subset of `docs/api/local-api.md`.
+  - Chrome sync routes remain intentionally deferred to Iteration 3.
+  - Route handlers use repositories through backend-only boundaries; frontend still sees only HTTP JSON.
+  - Review finding fixed: `GET /items` now supports documented sort values and rejects unsupported sort values.
+  - API tests are the current QA harness because the dev server uses an empty in-memory database until file-backed app database wiring is introduced.
+
 ## Iteration 3: Chrome Bookmark Import And Sync
 
 **Status:** planned
+
+**Entry Notes**
+
+- Iteration 2 is accepted.
+- Start with Chrome bookmark parser fixtures and sync repository orchestration tests.
+- Add file-backed database wiring before or during Iteration 3 if manual API smoke testing needs persistent seeded data.
+- Keep the Chrome integration read-only.
 
 **Objective:** Import Chrome bookmarks from a Windows profile, deduplicate them, and expose asynchronous sync status.
 

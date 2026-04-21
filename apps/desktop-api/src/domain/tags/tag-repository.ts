@@ -30,6 +30,19 @@ function toTag(row: TagRow): Tag {
 }
 
 export function createTagRepository(db: AppDatabase) {
+  function getTag(id: string): Tag | null {
+    const row = db.prepare('SELECT * FROM tags WHERE id = ?').get(id) as unknown as
+      | TagRow
+      | undefined;
+    return row ? toTag(row) : null;
+  }
+
+  function listTags(): Tag[] {
+    return (db.prepare('SELECT * FROM tags ORDER BY name ASC').all() as unknown as TagRow[]).map(
+      toTag
+    );
+  }
+
   function createTag(name: string): Tag {
     const trimmedName = name.trim();
     const normalizedName = normalizeTagName(name);
@@ -100,6 +113,8 @@ export function createTagRepository(db: AppDatabase) {
     createTag,
     deleteTag,
     detachTagFromItem,
+    getTag,
+    listTags,
     renameTag
   };
 }
