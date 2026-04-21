@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { HealthResponse } from '@my-web-bookmarks/shared';
+import { API_BASE_PATH, type HealthResponse } from '@my-web-bookmarks/shared';
 import { onMounted, ref } from 'vue';
 
 type BackendState = 'checking' | 'available' | 'unavailable';
@@ -8,7 +8,7 @@ const backendState = ref<BackendState>('checking');
 
 onMounted(async () => {
   try {
-    const response = await fetch('/api/v1/health');
+    const response = await fetch(`${API_BASE_PATH}/health`);
     const body = (await response.json()) as HealthResponse;
 
     backendState.value = response.ok && body.status === 'ok' ? 'available' : 'unavailable';

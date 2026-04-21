@@ -93,3 +93,178 @@ This log records implementation actions, planning decisions, verification eviden
 **Status**
 
 - Iteration 0 implementation is ready for tester review and team review.
+
+## 2026-04-21 - Iteration 0 QA and team review
+
+**QA actions**
+
+- Started backend with `npm run dev:api`.
+- Verified backend health endpoint through `GET http://127.0.0.1:4321/api/v1/health`.
+- Started frontend with `npm run dev:web`.
+- Verified Vite served the frontend at `http://127.0.0.1:5173/`.
+- Confirmed generated smoke evidence:
+  - `HEALTH_STATUS=ok`
+  - `WEB_STATUS=200`
+  - `WEB_HAS_APP_ROOT=True`
+- Confirmed no listeners remained on ports `4321` or `5173` after cleanup.
+
+**Team review actions**
+
+- Reviewed root workspace scripts.
+- Reviewed backend app factory and health route.
+- Reviewed frontend health state implementation.
+- Reviewed shared API contracts.
+- Reviewed local setup documentation.
+- Searched frontend/shared code for direct SQLite, filesystem, Chrome, or bookmark integration references.
+
+**Team review finding**
+
+- The frontend duplicated `/api/v1/health` instead of composing it from the shared `API_BASE_PATH`.
+
+**Follow-up implemented**
+
+- Updated `apps/web/src/App.vue` to import `API_BASE_PATH` from `@my-web-bookmarks/shared` and call `${API_BASE_PATH}/health`.
+
+**Final verification evidence**
+
+- `npm run typecheck` passed on 2026-04-21.
+- `npm run lint` passed on 2026-04-21.
+- `npm test` passed on 2026-04-21:
+  - `@my-web-bookmarks/desktop-api`: 1 test passed.
+  - `@my-web-bookmarks/web`: 2 tests passed.
+  - `@my-web-bookmarks/shared`: 3 tests passed.
+
+**Decision**
+
+- Iteration 0 is accepted.
+- Iteration 1 can start with SQLite persistence and core domain work.
+
+**Iteration 1 preparation**
+
+- Start with database initialization and migration tests.
+- Choose SQLite driver and migration strategy before writing persistence implementation.
+- Keep the frontend out of Iteration 1 unless shared API types need to evolve.
+
+## 2026-04-21 - Iteration 1 started
+
+**Goal**
+
+- Implement SQLite persistence and backend domain repositories for imported items, tags, summaries, settings, and sync run history.
+
+**Technical decisions**
+
+- Use Node.js built-in `node:sqlite` with `DatabaseSync` for the V1 local backend.
+- Use code-owned SQL migrations stored in backend source and tracked by a `schema_migrations` table.
+- Use `crypto.randomUUID()` with resource prefixes for opaque IDs.
+- Use one isolated in-memory SQLite database per automated repository test.
+
+**Risk noted**
+
+- `node:sqlite` is available in Node 24 but emits an experimental warning. This avoids native dependency installation now, but should be revisited before packaging if the warning or API stability becomes a problem.
+
+**Planned TDD slices**
+
+- Database migration creates required tables and constraints.
+- URL normalization covers V1 deduplication rules.
+- Item repository upserts by normalized URL and preserves user metadata.
+- Tag repository handles normalized uniqueness and item relations.
+- Summary, settings, and sync repositories cover V1 persistence rules.
+
+**Actions completed**
+
+- Added RED tests for:
+  - schema migration table creation
+  - URL normalization
+  - item upsert and metadata preservation
+  - item list filters
+  - tag uniqueness, rename, attachment, and deletion
+  - current summary upsert and manual edit
+  - OpenRouter settings redaction
+  - sync run status/count tracking
+- Confirmed RED state with missing `src/db` and domain modules.
+- Implemented database initialization with `schema_migrations`.
+- Implemented SQL schema for `items`, `tags`, `item_tags`, `summaries`, `settings`, and `sync_runs`.
+- Implemented URL normalization and domain extraction.
+- Implemented item, tag, summary, settings, and sync run repositories.
+- Updated backend test script to reduce main-process experimental warning noise.
+
+**Debugging notes**
+
+- Initial normalization test expectation contradicted the trailing-slash rule. The test was corrected to expect `https://example.com/Article?id=42`.
+- `node:sqlite` returns broad `Record<string, SQLOutputValue>` row types. Repository code now uses explicit row interfaces with narrow casts at database boundaries.
+- Full workspace tests still show `node:sqlite` experimental warnings from Vitest worker processes. This is documented as a known risk rather than hidden.
+
+**Verification evidence**
+
+- `npm run test --workspace @my-web-bookmarks/desktop-api` passed on 2026-04-21:
+  - 4 test files passed.
+  - 10 tests passed.
+- `npm run typecheck` passed on 2026-04-21.
+- `npm run lint` passed on 2026-04-21.
+- `npm test` passed on 2026-04-21:
+  - Backend: 10 tests passed.
+  - Web: 2 tests passed.
+  - Shared: 3 tests passed.
+
+**Status**
+
+- Iteration 1 implementation is ready for tester review and team review.
+
+**Next review focus**
+
+- Confirm schema matches `docs/architecture/database.md`.
+- Confirm repository boundaries are clean enough for Iteration 2 API routes.
+- Decide whether `node:sqlite` remains acceptable before packaging, given the experimental warning.
+
+## 2026-04-21 - Iteration 1 QA and team review
+
+**QA actions**
+
+- Ran full workspace verification:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm test`
+- Reviewed repository-backed test coverage for:
+  - repeated imported item upsert and metadata preservation
+  - tag deletion and relation cleanup
+  - OpenRouter API key redaction
+  - current summary editing
+  - sync run count/status persistence
+
+**Team review actions**
+
+- Compared SQL migration against `docs/architecture/database.md`.
+- Reviewed item, tag, summary, settings, and sync repository boundaries.
+- Confirmed frontend still has no direct SQLite access.
+- Reviewed `node:sqlite` operational risk.
+
+**Team review finding**
+
+- The settings repository did not expose `chrome_profile_path`, although the database architecture document lists it as an expected V1 setting.
+
+**Follow-up implemented**
+
+- Added a failing test for storing and clearing Chrome profile path.
+- Implemented `setChromeProfilePath` and `getChromeProfilePath` in `apps/desktop-api/src/domain/settings/settings-repository.ts`.
+- Re-ran the focused repository test and confirmed it passed.
+
+**Final verification evidence**
+
+- `npm run typecheck` passed on 2026-04-21.
+- `npm run lint` passed on 2026-04-21.
+- `npm test` passed on 2026-04-21:
+  - Backend: 11 tests passed.
+  - Web: 2 tests passed.
+  - Shared: 3 tests passed.
+
+**Decision**
+
+- Iteration 1 is accepted.
+- `node:sqlite` remains acceptable for now because it avoids native dependency setup and keeps the project simple, but the experimental warning stays in the risk register for packaging review.
+- Iteration 2 can start with API contract tests around the repository layer.
+
+**Iteration 2 preparation**
+
+- Implement HTTP routes over the existing repositories.
+- Add common validation and error response handling first.
+- Keep Chrome sync implementation and live AI calls out of Iteration 2.

@@ -75,7 +75,7 @@ An iteration can move to `accepted` only when:
 
 ## Iteration 0: Project Foundation
 
-**Status:** ready_for_test
+**Status:** accepted
 
 **Objective:** Establish the monorepo, shared tooling, executable baseline, and CI-ready quality gates.
 
@@ -137,35 +137,59 @@ An iteration can move to `accepted` only when:
   - `@my-web-bookmarks/shared`: 1 file, 3 tests passed.
 - 2026-04-21: `npm run typecheck` passed for all workspaces.
 - 2026-04-21: `npm run lint` passed for all workspaces. Current lint script is intentionally simple and delegates to TypeScript checks for Iteration 0.
+- 2026-04-21: Final review verification passed after team-review refactor:
+  - `npm test`: backend 1 test passed, web 2 tests passed, shared 3 tests passed.
+  - `npm run typecheck`: passed for all workspaces.
+  - `npm run lint`: passed for all workspaces.
 
 **Tester Review Status**
 
-- Pending manual smoke check on Windows:
-  - Start `npm run dev:api`.
-  - Start `npm run dev:web`.
-  - Open the Vite URL and confirm backend availability is shown.
-  - Stop backend and confirm unavailable state is non-crashing.
+- Accepted on 2026-04-21.
+- Smoke evidence:
+  - `npm run dev:api` started backend on `http://127.0.0.1:4321`.
+  - `GET http://127.0.0.1:4321/api/v1/health` returned `status=ok`.
+  - `npm run dev:web` started Vite on `http://127.0.0.1:5173`.
+  - `GET http://127.0.0.1:5173/` returned HTTP `200` and served the app root.
+  - Backend unavailable state is covered by frontend component test with rejected `fetch`.
 
 **Team Review Status**
 
-- Pending review of workspace layout, shared API boundary, and minimal tooling choices.
+- Accepted on 2026-04-21.
+- Review notes:
+  - Workspace layout matches the documented architecture.
+  - Frontend has no direct SQLite, filesystem, Chrome bookmark, or backend-internal access.
+  - Shared package owns the V1 API base path, health response DTO, and standard API error shape.
+  - Team-review refactor replaced a duplicated frontend API path with `API_BASE_PATH` from shared.
+  - Iteration 0 intentionally uses TypeScript checks as the initial lint gate; a dedicated ESLint setup can be added when style rules become valuable.
 
 ## Iteration 1: SQLite Persistence And Core Domain
 
-**Status:** planned
+**Status:** accepted
+
+**Entry Notes**
+
+- Iteration 0 is accepted.
+- Start with TDD around database initialization, migrations, URL normalization, and repositories.
+- Technical decisions still needed at iteration start: SQLite driver, migration approach, ID generation, test database strategy.
+- 2026-04-21 decisions:
+  - SQLite driver: built-in Node.js `node:sqlite` `DatabaseSync`.
+  - Migration approach: code-owned SQL migrations applied through a small `schema_migrations` table.
+  - ID generation: `crypto.randomUUID()` with resource prefixes.
+  - Test database strategy: isolated in-memory SQLite database per test.
+  - Known risk: Node currently emits an experimental warning for `node:sqlite`; keep this visible and revisit if it becomes operationally noisy.
 
 **Objective:** Implement the local database schema and repository layer for items, tags, summaries, settings, and sync history.
 
 **Scope**
 
-- [ ] Create SQLite initialization and migration mechanism.
-- [ ] Implement tables: `items`, `tags`, `item_tags`, `summaries`, `settings`, `sync_runs`.
-- [ ] Implement URL normalization used for item deduplication.
-- [ ] Implement repository functions for item create/update/list/detail/status changes.
-- [ ] Implement repository functions for tag create/rename/delete/attach/detach.
-- [ ] Implement repository functions for current summary read/upsert/manual update.
-- [ ] Implement settings repository with OpenRouter secret redaction at API boundary.
-- [ ] Implement sync run repository for latest status and run history.
+- [x] Create SQLite initialization and migration mechanism.
+- [x] Implement tables: `items`, `tags`, `item_tags`, `summaries`, `settings`, `sync_runs`.
+- [x] Implement URL normalization used for item deduplication.
+- [x] Implement repository functions for item create/update/list/detail/status changes.
+- [x] Implement repository functions for tag create/rename/delete/attach/detach.
+- [x] Implement repository functions for current summary read/upsert/manual update.
+- [x] Implement settings repository with OpenRouter secret redaction at API boundary.
+- [x] Implement sync run repository for latest status and run history.
 
 **Primary Files**
 
@@ -201,9 +225,60 @@ An iteration can move to `accepted` only when:
 
 - The backend has a reliable local persistence layer that protects user metadata across repeated imports.
 
+**Implementation Notes**
+
+- 2026-04-21: Implemented database initialization and code-owned SQL migration `001_v1_schema`.
+- 2026-04-21: Implemented domain repositories for items, tags, summaries, settings, and sync runs.
+- 2026-04-21: Implemented V1 URL normalization for deduplication.
+- 2026-04-21: Used in-memory SQLite databases for repository tests.
+- 2026-04-21: `node:sqlite` experimental warning remains visible during full workspace tests; risk is accepted for now and should be revisited before packaging.
+
+**Verification Evidence**
+
+- 2026-04-21: RED confirmed before implementation:
+  - `npm run test --workspace @my-web-bookmarks/desktop-api` failed because `src/db` and domain modules did not exist.
+- 2026-04-21: `npm run test --workspace @my-web-bookmarks/desktop-api` passed:
+  - 4 test files passed.
+  - 10 backend tests passed.
+- 2026-04-21: Full workspace verification passed:
+  - `npm run typecheck`: passed for all workspaces.
+  - `npm run lint`: passed for all workspaces.
+  - `npm test`: backend 10 tests passed, web 2 tests passed, shared 3 tests passed.
+- 2026-04-21: QA/team review fix added Chrome profile path settings support with RED/GREEN evidence:
+  - focused RED: settings repository test failed because `setChromeProfilePath` did not exist.
+  - focused GREEN: repository test file passed with 7 tests.
+  - final `npm test`: backend 11 tests passed, web 2 tests passed, shared 3 tests passed.
+  - final `npm run typecheck`: passed for all workspaces.
+  - final `npm run lint`: passed for all workspaces.
+
+**Tester Review Status**
+
+- Accepted on 2026-04-21.
+- Repository-backed QA checks covered by automated tests:
+  - repeated imported-like item upsert preserves status, tags, and summary.
+  - deleting a tag removes item relations without deleting items.
+  - public settings do not expose the OpenRouter API key.
+  - Chrome profile path can be stored and cleared.
+
+**Team Review Status**
+
+- Accepted on 2026-04-21.
+- Review notes:
+  - Schema aligns with `docs/architecture/database.md` and adds `skipped_count` plus `updated_by` to satisfy API-facing V1 needs.
+  - Repository boundaries are backend-only and ready for Iteration 2 API routes.
+  - Review finding fixed: settings repository now supports `chrome_profile_path`.
+  - `node:sqlite` remains accepted for now as the simplest local driver, with its experimental warning tracked as a risk before packaging.
+
 ## Iteration 2: Local API For Items, Tags, Summaries, And Settings
 
 **Status:** planned
+
+**Entry Notes**
+
+- Iteration 1 is accepted.
+- Use existing repositories from `apps/desktop-api/src/domain/*` behind HTTP routes.
+- Start with API contract tests for validation errors, not-found handling, tag conflicts, settings redaction, and item list filtering.
+- Keep live Chrome import and live AI calls out of Iteration 2.
 
 **Objective:** Implement the stable `/api/v1` contract without Chrome import or live AI calls yet.
 
