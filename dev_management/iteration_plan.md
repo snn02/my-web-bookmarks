@@ -1,0 +1,478 @@
+# My Web Bookmarks Development Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` for parallelizable implementation tasks or `superpowers:executing-plans` for inline execution. Keep checkbox statuses current after each iteration.
+
+**Goal:** Deliver a V1 local-first Windows application for importing Chrome bookmarks, processing them in a reading inbox, enriching them with manual and AI-assisted metadata, and retrieving them through search and filters.
+
+**Architecture:** Build a monorepo with `apps/web`, `apps/desktop-api`, and `packages/shared`. The Vue frontend talks only to a stable HTTP JSON API under `/api/v1`; the backend owns Chrome bookmark import, SQLite persistence, OpenRouter calls, and local configuration. SQLite is the source of app-specific metadata, while Chrome remains the source of bookmark input.
+
+**Tech Stack:** Vue 3, TypeScript, Node.js, SQLite, HTTP JSON API, OpenRouter, Windows local Chrome profile integration.
+
+---
+
+## Operating Model
+
+This plan is maintained as the development control document. After every iteration, update:
+
+- the iteration status: `planned`, `in_progress`, `ready_for_test`, `accepted`, or `rework`
+- the checklist state for completed scope
+- the verification evidence: automated tests, tester review, team review
+- newly discovered risks, decisions, and follow-up tasks
+
+Implementation actions, deviations, test results, and lessons learned are logged in `dev_management/action_log.md`.
+
+## Current Project Baseline
+
+Existing documentation:
+
+- `docs/product/v1-scope.md`
+- `docs/product/user-stories.md`
+- `docs/architecture/overview.md`
+- `docs/architecture/database.md`
+- `docs/api/local-api.md`
+
+Current repository state:
+
+- Product and architecture documentation exists.
+- Application source code has not been scaffolded yet.
+- `docs/architecture/database.md` is currently untracked in git and should be reviewed before the first development commit.
+
+## Roles And Review Gates
+
+**Team Lead**
+
+- Owns iteration scope, sequencing, technical decisions, and status updates in this plan.
+- Confirms that each iteration has a working vertical outcome, not only isolated code.
+- Maintains the action log and captures lessons learned.
+
+**Developers**
+
+- Work task-by-task with TDD where practical.
+- Keep commits small and tied to iteration deliverables.
+- Add or update tests with each behavioral change.
+
+**Tester**
+
+- Reviews acceptance criteria from the user's perspective.
+- Runs exploratory checks against the built app and API.
+- Records defects with reproduction steps and expected behavior.
+
+**Team Review**
+
+- Reviews architecture fit, maintainability, API contract stability, data safety, and operational risks.
+- Confirms whether the iteration result is acceptable for the next iteration.
+
+## Definition Of Done For Every Iteration
+
+An iteration can move to `accepted` only when:
+
+- automated tests for the iteration pass locally
+- linting/type checks pass for touched workspaces
+- tester review is complete with no unresolved blocking defects
+- team review is complete and decisions are documented
+- this plan is updated with final status and verification evidence
+- `dev_management/action_log.md` contains a dated implementation summary
+
+## Iteration 0: Project Foundation
+
+**Status:** ready_for_test
+
+**Objective:** Establish the monorepo, shared tooling, executable baseline, and CI-ready quality gates.
+
+**Scope**
+
+- [x] Create repository layout: `apps/web`, `apps/desktop-api`, `packages/shared`, `data/sqlite`, `data/logs`, `data/cache`.
+- [x] Configure TypeScript for all packages.
+- [x] Configure package management and workspace scripts.
+- [x] Add lint, format, typecheck, and test commands.
+- [x] Add minimal backend health endpoint: `GET /api/v1/health`.
+- [x] Add minimal web app that calls the health endpoint and renders backend availability.
+- [x] Add shared DTO package for API response/error conventions.
+- [x] Document local setup commands.
+
+**Primary Files**
+
+- `package.json`
+- `tsconfig.base.json`
+- `apps/web/*`
+- `apps/desktop-api/*`
+- `packages/shared/*`
+- `docs/development/local-setup.md`
+
+**Automated Verification**
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm test`
+- Backend API test: `GET /api/v1/health` returns `{ "status": "ok" }`.
+- Frontend component/integration test verifies health state rendering.
+
+**Tester Review**
+
+- Start backend and frontend locally on Windows.
+- Open the web app and confirm it shows backend availability.
+- Stop backend and confirm the frontend shows a non-crashing unavailable state.
+
+**Team Review**
+
+- Confirm workspace layout matches architecture docs.
+- Confirm scripts are simple enough for future agents and developers.
+- Confirm API error convention is represented in shared types.
+
+**Exit Result**
+
+- A runnable skeleton exists and can be validated automatically.
+- Development can proceed without reworking project structure.
+
+**Implementation Notes**
+
+- 2026-04-21: User approved the simplest Approach A: npm workspaces, Vite/Vue 3, Express, Vitest, and TypeScript.
+- 2026-04-21: Implemented runnable skeleton with `apps/web`, `apps/desktop-api`, `packages/shared`, and data directories.
+
+**Verification Evidence**
+
+- 2026-04-21: `npm test` passed.
+  - `@my-web-bookmarks/desktop-api`: 1 file, 1 test passed.
+  - `@my-web-bookmarks/web`: 1 file, 2 tests passed.
+  - `@my-web-bookmarks/shared`: 1 file, 3 tests passed.
+- 2026-04-21: `npm run typecheck` passed for all workspaces.
+- 2026-04-21: `npm run lint` passed for all workspaces. Current lint script is intentionally simple and delegates to TypeScript checks for Iteration 0.
+
+**Tester Review Status**
+
+- Pending manual smoke check on Windows:
+  - Start `npm run dev:api`.
+  - Start `npm run dev:web`.
+  - Open the Vite URL and confirm backend availability is shown.
+  - Stop backend and confirm unavailable state is non-crashing.
+
+**Team Review Status**
+
+- Pending review of workspace layout, shared API boundary, and minimal tooling choices.
+
+## Iteration 1: SQLite Persistence And Core Domain
+
+**Status:** planned
+
+**Objective:** Implement the local database schema and repository layer for items, tags, summaries, settings, and sync history.
+
+**Scope**
+
+- [ ] Create SQLite initialization and migration mechanism.
+- [ ] Implement tables: `items`, `tags`, `item_tags`, `summaries`, `settings`, `sync_runs`.
+- [ ] Implement URL normalization used for item deduplication.
+- [ ] Implement repository functions for item create/update/list/detail/status changes.
+- [ ] Implement repository functions for tag create/rename/delete/attach/detach.
+- [ ] Implement repository functions for current summary read/upsert/manual update.
+- [ ] Implement settings repository with OpenRouter secret redaction at API boundary.
+- [ ] Implement sync run repository for latest status and run history.
+
+**Primary Files**
+
+- `apps/desktop-api/src/db/*`
+- `apps/desktop-api/src/domain/items/*`
+- `apps/desktop-api/src/domain/tags/*`
+- `apps/desktop-api/src/domain/summaries/*`
+- `apps/desktop-api/src/domain/settings/*`
+- `apps/desktop-api/src/domain/sync/*`
+- `packages/shared/src/*`
+
+**Automated Verification**
+
+- Migration test creates all required tables on an empty database.
+- Repository tests use isolated temporary SQLite databases.
+- URL normalization tests cover whitespace, host casing, fragments, trailing slash handling, and common `utm_*` parameters.
+- Deduplication test proves repeated normalized URLs update one item rather than creating duplicates.
+- Tag uniqueness test proves case-insensitive duplicate names produce a conflict.
+
+**Tester Review**
+
+- Use seeded test data through API or a dev script.
+- Confirm imported-like items preserve status, tags, and summary after repeated upsert.
+- Confirm deleting a tag removes it from items without deleting items.
+
+**Team Review**
+
+- Confirm schema follows `docs/architecture/database.md`.
+- Confirm no frontend code accesses SQLite directly.
+- Confirm secret handling is acceptable for V1 and future OS secure storage migration remains possible.
+
+**Exit Result**
+
+- The backend has a reliable local persistence layer that protects user metadata across repeated imports.
+
+## Iteration 2: Local API For Items, Tags, Summaries, And Settings
+
+**Status:** planned
+
+**Objective:** Implement the stable `/api/v1` contract without Chrome import or live AI calls yet.
+
+**Scope**
+
+- [ ] Implement common request validation and error response shape.
+- [ ] Implement `GET /items` with search, status filter, tag filter, pagination, and sorting.
+- [ ] Implement `GET /items/:itemId`.
+- [ ] Implement `PATCH /items/:itemId` for status only.
+- [ ] Implement `GET /tags`, `POST /tags`, `PATCH /tags/:tagId`, `DELETE /tags/:tagId`.
+- [ ] Implement `POST /items/:itemId/tags` and `DELETE /items/:itemId/tags/:tagId`.
+- [ ] Implement `GET /items/:itemId/summary` and `PATCH /items/:itemId/summary`.
+- [ ] Implement `GET /settings` and `PATCH /settings`.
+- [ ] Keep AI endpoints present as explicit `ai_not_configured` or controlled stub behavior until Iteration 5.
+
+**Primary Files**
+
+- `apps/desktop-api/src/http/*`
+- `apps/desktop-api/src/routes/*`
+- `apps/desktop-api/src/validation/*`
+- `apps/desktop-api/src/domain/*`
+- `packages/shared/src/api/*`
+
+**Automated Verification**
+
+- API contract tests cover every endpoint in `docs/api/local-api.md`.
+- Error tests verify `validation_error`, `not_found`, `conflict`, and `ai_not_configured`.
+- Search tests cover title, URL, domain, and summary content.
+- Settings tests verify `GET /settings` never returns the raw OpenRouter key.
+
+**Tester Review**
+
+- Exercise endpoints with a REST client collection or scripted smoke test.
+- Confirm invalid inputs produce understandable errors.
+- Confirm API behavior matches the local API document.
+
+**Team Review**
+
+- Confirm frontend can rely on the contract without knowing filesystem or SQLite details.
+- Confirm unsupported fields are rejected rather than silently ignored.
+- Confirm current summary behavior is one-version-only as specified.
+
+**Exit Result**
+
+- The backend API contract is usable for frontend development and stable enough for future implementation behind it.
+
+## Iteration 3: Chrome Bookmark Import And Sync
+
+**Status:** planned
+
+**Objective:** Import Chrome bookmarks from a Windows profile, deduplicate them, and expose asynchronous sync status.
+
+**Scope**
+
+- [ ] Implement Chrome `Bookmarks` file reader for configured profile path.
+- [ ] Add safe default profile path detection for Windows.
+- [ ] Parse bookmark folders recursively and extract bookmark title, URL, source path, and source identifier.
+- [ ] Normalize URLs and upsert items by `normalized_url`.
+- [ ] Preserve user-managed status, tags, and summaries on re-import.
+- [ ] Implement `POST /sync/bookmarks` with single-active-run protection.
+- [ ] Implement `GET /sync/status`.
+- [ ] Record `importedCount`, `updatedCount`, `skippedCount`, and failure details.
+
+**Primary Files**
+
+- `apps/desktop-api/src/integrations/chrome/*`
+- `apps/desktop-api/src/domain/sync/*`
+- `apps/desktop-api/src/routes/sync*`
+- `packages/shared/src/api/sync*`
+
+**Automated Verification**
+
+- Parser tests use fixture Chrome bookmark JSON files.
+- Sync tests prove recursive folders are imported.
+- Deduplication tests prove repeated sync updates existing items.
+- Concurrency test proves a second sync request returns `sync_already_running`.
+- Failure test proves malformed or missing bookmark files create a failed sync status with useful error details.
+
+**Tester Review**
+
+- Configure a real or copied Chrome profile path on Windows.
+- Run sync and confirm newly saved Android/Chrome bookmarks appear after Chrome sync writes them locally.
+- Re-run sync and confirm item count is stable when there are no new bookmarks.
+- Confirm removing a bookmark from Chrome does not delete the local item.
+
+**Team Review**
+
+- Confirm Chrome integration is read-only.
+- Confirm file access errors are diagnosable.
+- Confirm source identifier strategy is stable enough for V1.
+
+**Exit Result**
+
+- The app can populate its local inbox from Chrome bookmarks and report sync status safely.
+
+## Iteration 4: Web Inbox, Manual Processing, Search, And Filters
+
+**Status:** planned
+
+**Objective:** Deliver the first user-facing workflow for reviewing imported bookmarks without AI dependency.
+
+**Scope**
+
+- [ ] Build inbox list showing title, URL, domain, import date, status, tags, and summary presence.
+- [ ] Add status actions: mark new, mark read, archive.
+- [ ] Add open-original action using the item URL.
+- [ ] Add tag creation, rename, deletion, attach, and detach UI.
+- [ ] Add summary display and manual editing UI for existing summaries.
+- [ ] Add search across title, URL, domain, and summary.
+- [ ] Add filters by status and tags.
+- [ ] Add sync trigger and latest sync status display.
+- [ ] Add loading, empty, and error states for all main workflows.
+
+**Primary Files**
+
+- `apps/web/src/api/*`
+- `apps/web/src/components/*`
+- `apps/web/src/views/*`
+- `apps/web/src/stores/*`
+- `apps/web/src/router/*`
+- `packages/shared/src/api/*`
+
+**Automated Verification**
+
+- Frontend unit tests for components with key states.
+- API client tests verify request/response mapping.
+- Integration tests with mocked API cover inbox load, status update, tag attach/detach, search, filtering, and sync trigger.
+- Accessibility-focused tests cover keyboard navigation for core controls where feasible.
+
+**Tester Review**
+
+- Perform a full manual workflow: sync, search, filter, mark read, archive, tag, untag, open article.
+- Confirm the app remains useful with no AI settings configured.
+- Confirm long URLs, long titles, empty states, and backend errors do not break the UI.
+
+**Team Review**
+
+- Confirm UI supports the V1 user stories for non-AI processing.
+- Confirm frontend code uses only API clients, not backend internals.
+- Confirm the workflow is ergonomic enough before adding AI complexity.
+
+**Exit Result**
+
+- A user can manage and retrieve bookmarks locally without AI.
+
+## Iteration 5: OpenRouter Settings And AI Workflows
+
+**Status:** planned
+
+**Objective:** Add AI-generated summaries and tag suggestions while preserving local-first usability.
+
+**Scope**
+
+- [ ] Add OpenRouter client with configurable model.
+- [ ] Add settings UI for API key configured state and model choice.
+- [ ] Implement article content fetching/extraction strategy suitable for V1.
+- [ ] Implement `POST /items/:itemId/summary` to generate and store the current summary.
+- [ ] Implement `POST /items/:itemId/tag-suggestions` without automatic persistence.
+- [ ] Add frontend controls for generating/regenerating summaries.
+- [ ] Add frontend flow for reviewing AI tag suggestions and confirming selected tags.
+- [ ] Add clear AI error states for missing configuration and upstream failures.
+
+**Primary Files**
+
+- `apps/desktop-api/src/integrations/openrouter/*`
+- `apps/desktop-api/src/domain/ai/*`
+- `apps/desktop-api/src/routes/summary*`
+- `apps/desktop-api/src/routes/tagSuggestions*`
+- `apps/web/src/views/settings*`
+- `apps/web/src/components/ai*`
+- `packages/shared/src/api/*`
+
+**Automated Verification**
+
+- OpenRouter client tests mock HTTP responses and failures.
+- AI endpoint tests verify `ai_not_configured`, `upstream_error`, successful summary persistence, and non-persistence of tag suggestions.
+- Prompt construction tests verify minimum required article context and expected output constraints.
+- Frontend tests cover settings redaction, generation states, failure states, and suggestion confirmation.
+
+**Tester Review**
+
+- Test with no API key: core app works and AI actions fail clearly.
+- Test with configured API key and low-cost model: summary generation stores one current editable summary.
+- Test regeneration: old current summary is replaced.
+- Test tag suggestions: suggestions are shown but not saved until the user confirms them.
+
+**Team Review**
+
+- Confirm costs and model defaults are reasonable.
+- Confirm secrets are not logged or returned by API.
+- Confirm AI failures do not block bookmark processing.
+
+**Exit Result**
+
+- AI assists processing but remains optional and bounded by explicit user action.
+
+## Iteration 6: Reliability, Observability, Packaging Readiness
+
+**Status:** planned
+
+**Objective:** Harden the V1 app for daily local use and prepare a repeatable release path.
+
+**Scope**
+
+- [ ] Add structured local logs under `data/logs`.
+- [ ] Add defensive handling for database corruption, migration failure, missing Chrome profile, network timeouts, and OpenRouter failures.
+- [ ] Add backup/export guidance for SQLite data.
+- [ ] Add smoke test script covering backend start, health, database init, and basic API calls.
+- [ ] Add release checklist for local Windows usage.
+- [ ] Review whether desktop packaging is required for V1 or whether a local web/backend launch script is enough.
+- [ ] Update product and architecture docs with implementation decisions.
+
+**Primary Files**
+
+- `apps/desktop-api/src/logging/*`
+- `apps/desktop-api/src/config/*`
+- `scripts/*`
+- `docs/development/*`
+- `docs/release/*`
+- `dev_management/*`
+
+**Automated Verification**
+
+- Smoke test script passes on a clean local checkout.
+- Failure-mode tests cover missing profile, failed migration, invalid settings, and upstream timeout.
+- Logging tests or assertions confirm secrets are not written to logs.
+- Full test suite, lint, and typecheck pass.
+
+**Tester Review**
+
+- Execute the release checklist on Windows.
+- Simulate common failure modes and confirm messages are actionable.
+- Confirm existing data survives app restart and repeated sync.
+
+**Team Review**
+
+- Confirm V1 is operationally supportable.
+- Confirm known limitations are documented.
+- Confirm remaining backlog is split into post-V1 work rather than hidden inside V1.
+
+**Exit Result**
+
+- V1 is ready for regular local use and structured feedback.
+
+## Cross-Cutting Backlog
+
+These items should be pulled into iterations only when they become necessary for the V1 outcome.
+
+- [ ] Decide package manager and lockfile policy.
+- [ ] Decide backend HTTP framework.
+- [ ] Decide SQLite driver and migration tool.
+- [ ] Decide frontend test runner and browser automation stack.
+- [ ] Decide whether to add Electron/Tauri packaging after V1 or before first user trial.
+- [ ] Define fixture strategy for Chrome bookmark files.
+- [ ] Define sanitized sample data for demos and tests.
+- [ ] Define AI prompt templates and cost guardrails.
+
+## Risk Register
+
+| Risk | Impact | Mitigation | Status |
+| --- | --- | --- | --- |
+| Chrome bookmark file shape differs across versions or profiles | Sync may miss bookmarks | Use fixture coverage and real Windows profile testing | open |
+| OpenRouter costs or failures degrade UX | User may avoid AI features | Make AI optional, explicit, and failure-tolerant | open |
+| SQLite schema changes during early development | Rework and data loss risk | Add migrations from Iteration 1 and test them | open |
+| Frontend couples to backend internals | Future remote/local boundary becomes expensive | Shared DTOs and API-client-only frontend access | open |
+| Secrets leak into responses or logs | Security/privacy issue | Redaction tests and logging review | open |
+
+## Status History
+
+| Date | Change |
+| --- | --- |
+| 2026-04-21 | Initial development management plan created from existing project documentation. |

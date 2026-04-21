@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.vite/
+coverage/
+
+data/sqlite/*
+data/logs/*
+data/cache/*
+!data/sqlite/.gitkeep
+!data/logs/.gitkeep
+!data/cache/.gitkeep
+
+.env
+.env.*

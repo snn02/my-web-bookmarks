@@ -1,0 +1,20 @@
+{
+  "name": "my-web-bookmarks",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace @my-web-bookmarks/desktop-api",
+    "dev:web": "npm run dev --workspace @my-web-bookmarks/web",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
