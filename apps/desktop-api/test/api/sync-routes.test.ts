@@ -6,6 +6,7 @@ import { createApp } from '../../src/app';
 import { createInMemoryDatabase, initializeDatabase } from '../../src/db/database';
 import { createSettingsRepository } from '../../src/domain/settings/settings-repository';
 import { createSyncRunRepository } from '../../src/domain/sync/sync-run-repository';
+import type { AppLogger } from '../../src/logging/app-logger';
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 const fixtureProfilePath = join(testDir, '..', 'fixtures', 'chrome-profile');
@@ -13,9 +14,16 @@ const fixtureProfilePath = join(testDir, '..', 'fixtures', 'chrome-profile');
 function createSyncApiTestContext() {
   const db = createInMemoryDatabase();
   initializeDatabase(db);
+  const logs: Array<{ event: string; metadata?: Record<string, unknown> }> = [];
+  const logger: AppLogger = {
+    error: (event, metadata) => logs.push({ event, metadata }),
+    info: (event, metadata) => logs.push({ event, metadata }),
+    warn: (event, metadata) => logs.push({ event, metadata })
+  };
 
   return {
-    app: createApp({ db }),
+    app: createApp({ db, logger }),
+    logs,
     settings: createSettingsRepository(db),
     syncRuns: createSyncRunRepository(db)
   };
@@ -23,7 +31,7 @@ function createSyncApiTestContext() {
 
 describe('sync API', () => {
   it('starts bookmark sync asynchronously and returns the latest sync status', async () => {
-    const { app, settings } = createSyncApiTestContext();
+    const { app, logs, settings } = createSyncApiTestContext();
     settings.setChromeProfilePath(fixtureProfilePath);
 
     const startResponse = await request(app).post('/api/v1/sync/bookmarks').send({});
@@ -45,6 +53,8 @@ describe('sync API', () => {
       skippedCount: 1,
       error: null
     });
+    expect(logs.some((entry) => entry.event === 'sync.bookmarks.started')).toBe(true);
+    expect(logs.some((entry) => entry.event === 'sync.bookmarks.finished')).toBe(true);
   });
 
   it('returns idle sync status before any sync has run', async () => {

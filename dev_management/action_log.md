@@ -792,3 +792,179 @@ This log records implementation actions, planning decisions, verification eviden
 
 - Iteration 5 is accepted.
 - Iteration 6 can start with reliability, observability, and packaging readiness.
+
+## 2026-04-21 - Iteration 6 started
+
+**Scope decision**
+
+- Started with the release-readiness slice: automated smoke script, Windows release checklist, backup guidance, and manual smoke scenarios.
+- Deferred structured local logs and durable database storage to the next Iteration 6 slice.
+- Packaging decision for V1: keep local development commands plus checklist; defer Electron/Tauri until a non-developer launch experience is required.
+
+**TDD actions**
+
+- RED:
+  - Added smoke helper tests before the smoke module existed.
+  - Confirmed missing module failure for `scripts/smoke-test.mjs`.
+- GREEN:
+  - Added `scripts/smoke-test.mjs` with URL building, lifecycle final-state detection, report generation, and secret redaction helpers.
+  - Added `scripts/smoke-runner.ts` to start the Express app in-process and run real HTTP lifecycle checks.
+  - Added `npm run smoke` and `npm run test:smoke`.
+  - Root `npm test` now runs smoke helper tests before workspace tests.
+
+**Debugging notes**
+
+- Initial smoke runner attempted to spawn `npm run dev:api` from Node.
+- On this Windows/sandbox setup, nested child process spawning produced `spawn EINVAL` or `spawn EPERM`.
+- Fix: avoid shell-dependent spawning and run the backend in-process through `tsx scripts/smoke-runner.ts`.
+
+**Documentation added**
+
+- `docs/release/windows-v1-checklist.md`
+- `docs/development/data-backup.md`
+- `docs/development/manual-smoke-scenarios.md`
+
+**Smoke coverage**
+
+- `npm run smoke` starts backend on a local smoke port.
+- Checks `/api/v1/health`.
+- Checks `/api/v1/settings` does not expose OpenRouter-style keys.
+- Checks `/api/v1/items` returns a list response.
+- Starts bookmark sync without Chrome profile path.
+- Verifies sync reaches final failed state with a visible error.
+
+**Verification evidence**
+
+- `npm run test:smoke` passed on 2026-04-21:
+  - 6 tests passed.
+- `npm run smoke` passed on 2026-04-21:
+  - health: ok.
+  - settings redaction: ok.
+  - items list: ok.
+  - sync lifecycle started: ok.
+  - sync lifecycle failure is visible: ok.
+- `npm run typecheck` passed on 2026-04-21.
+- `npm run lint` passed on 2026-04-21.
+- `npm test` passed on 2026-04-21:
+  - Smoke helpers: 6 tests passed.
+  - Backend: 34 tests passed.
+  - Web: 10 tests passed.
+  - Shared: 3 tests passed.
+
+**Status**
+
+- Iteration 6 remains in progress.
+- First release-readiness slice is ready for QA/team review.
+- Remaining planned Iteration 6 work: structured local logs, durable data decision, and additional defensive failure handling.
+
+## 2026-04-21 - Iteration 6 structured logging slice
+
+**Scope decision**
+
+- Add structured local JSONL logs under `data/logs`.
+- Keep logging narrowly focused on runtime lifecycle and diagnostic events.
+- Avoid logging raw OpenRouter API keys at the source; also redact OpenRouter-style keys before file writes as defense in depth.
+
+**TDD actions**
+
+- RED:
+  - Added logger unit tests before `apps/desktop-api/src/logging/app-logger.ts` existed.
+  - Added API tests expecting sync, AI, and settings events to be logged.
+  - RED confirmed because logger module was missing and app events were not logged.
+- GREEN:
+  - Added `createFileLogger`, `createNoopLogger`, `AppLogger`, and recursive `redactLogValue`.
+  - Added `createApp({ logger })` injection.
+  - Added file logger usage in `apps/desktop-api/src/server.ts`.
+  - Added logging for backend start, OpenRouter settings updates, sync start/finish, AI summary success/failure, and AI tag suggestion success/failure.
+  - Extended `npm run smoke` to verify structured logs are written without OpenRouter-style secrets.
+
+**Debugging notes**
+
+- Initial settings event included the raw API key in injected test logger metadata.
+- Fix: do not pass raw `apiKey` into log metadata at all; log only `apiKeyProvided` and model.
+
+**Documentation updated**
+
+- `docs/release/windows-v1-checklist.md` now includes log checks.
+- `docs/development/data-backup.md` now documents `data/logs/desktop-api.log`, JSONL format, redaction, and sharing cautions.
+
+**Verification evidence**
+
+- `npm run smoke` passed on 2026-04-21:
+  - structured logs written without secrets: ok.
+- `npm run typecheck` passed on 2026-04-21.
+- `npm run lint` passed on 2026-04-21.
+- `npm test` passed on 2026-04-21:
+  - Smoke helpers: 6 tests passed.
+  - Backend: 36 tests passed.
+  - Web: 10 tests passed.
+  - Shared: 3 tests passed.
+
+**Status**
+
+- Structured logging slice is ready for QA/team review.
+- Iteration 6 remains in progress.
+- Remaining planned Iteration 6 work: durable database/storage decision and additional defensive failure handling.
+
+## 2026-04-21 - Iteration 6 durable storage plan updated
+
+**Planning update**
+
+- Normal backend startup should use durable SQLite storage at root `data/sqlite/app.db`.
+- `DATABASE_PATH` should override the default path for development, smoke, and future packaging.
+- Automated tests should continue using in-memory or temporary databases.
+- `npm run smoke` must use an isolated temporary database and must not mutate the real app database.
+- Startup database or migration failures should be logged as `database.startup.failed` and exit with a non-zero process code.
+
+**Acceptance additions**
+
+- File database data survives close/reopen.
+- Root server startup uses file database by default.
+- Smoke runner uses temporary file database.
+- Backup docs point to the real durable database location.
+- Migration/startup failure path has tests or a focused manual verification note.
+
+## 2026-04-21 - Iteration 6 durable storage and startup hardening
+
+**TDD actions**
+
+- RED:
+  - Added file database persistence-across-reopen test.
+  - Added default durable database path test.
+  - Added isolated smoke database path test.
+  - Added startup failure logging test.
+  - RED confirmed because file database helpers, smoke database path helper, and startup helper did not exist.
+- GREEN:
+  - Added `createFileDatabase`.
+  - Added `getDefaultDatabasePath`.
+  - Normal backend startup now uses durable SQLite at root `data/sqlite/app.db`.
+  - Added `DATABASE_PATH` override support.
+  - Smoke runner now uses isolated temporary SQLite database paths.
+  - Added `startDesktopApi` startup helper with tested `database.startup.failed` logging on database open/migration failure.
+
+**Debugging notes**
+
+- First default database path implementation used `process.cwd()`.
+- Workspace tests showed this could create `apps/desktop-api/data/sqlite/app.db`.
+- Fix: resolve default database path from the source file location to the repository root, not from `cwd`.
+- Removed the generated erroneous `apps/desktop-api/data` runtime artifact.
+
+**Documentation updated**
+
+- `docs/development/data-backup.md` now documents real storage at `data/sqlite/app.db`, `DATABASE_PATH`, and isolated smoke databases.
+- `docs/release/windows-v1-checklist.md` now asks the tester to confirm `data/sqlite/app.db` creation and backup/restore steps.
+
+**Verification evidence**
+
+- `npm run smoke` passed on 2026-04-21 and did not create `apps/desktop-api/data`.
+- `npm run typecheck` passed on 2026-04-21.
+- `npm run lint` passed on 2026-04-21.
+- `npm test` passed on 2026-04-21:
+  - Smoke helpers: 7 tests passed.
+  - Backend: 39 tests passed.
+  - Web: 10 tests passed.
+  - Shared: 3 tests passed.
+
+**Status**
+
+- Iteration 6 implementation is ready for QA and team review.

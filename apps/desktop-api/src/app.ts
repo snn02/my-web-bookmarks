@@ -9,9 +9,11 @@ import { createBookmarkSyncService } from './domain/sync/bookmark-sync-service';
 import { createSyncRunRepository, type SyncRun } from './domain/sync/sync-run-repository';
 import { createTagRepository } from './domain/tags/tag-repository';
 import { sendApiError } from './http/errors';
+import { createNoopLogger, type AppLogger } from './logging/app-logger';
 
 export interface CreateAppOptions {
   db?: AppDatabase;
+  logger?: AppLogger;
   openRouterFetch?: typeof fetch;
 }
 
@@ -26,6 +28,7 @@ const ITEM_SORTS = new Set<ItemSort>([
 export function createApp(options: CreateAppOptions = {}): Express {
   const db = options.db ?? createInMemoryDatabase();
   initializeDatabase(db);
+  const logger = options.logger ?? createNoopLogger();
 
   const items = createItemRepository(db);
   const settings = createSettingsRepository(db);
@@ -193,8 +196,17 @@ export function createApp(options: CreateAppOptions = {}): Express {
     }
 
     try {
-      return response.status(200).json(await ai.generateSummary(request.params.itemId));
+      const summary = await ai.generateSummary(request.params.itemId);
+      logger.info('ai.summary.generated', {
+        itemId: request.params.itemId,
+        updatedBy: summary?.updatedBy
+      });
+      return response.status(200).json(summary);
     } catch (error) {
+      logger.warn('ai.summary.failed', {
+        error: error instanceof Error ? error.message : 'Unknown AI summary failure.',
+        itemId: request.params.itemId
+      });
       return sendAiError(response, error);
     }
   });
@@ -221,10 +233,17 @@ export function createApp(options: CreateAppOptions = {}): Express {
     }
 
     try {
-      return response.status(200).json({
-        suggestions: await ai.suggestTags(request.params.itemId)
+      const suggestions = await ai.suggestTags(request.params.itemId);
+      logger.info('ai.tag_suggestions.generated', {
+        itemId: request.params.itemId,
+        suggestionCount: suggestions?.length ?? 0
       });
+      return response.status(200).json({ suggestions });
     } catch (error) {
+      logger.warn('ai.tag_suggestions.failed', {
+        error: error instanceof Error ? error.message : 'Unknown AI tag suggestion failure.',
+        itemId: request.params.itemId
+      });
       return sendAiError(response, error);
     }
   });
@@ -246,10 +265,17 @@ export function createApp(options: CreateAppOptions = {}): Express {
         apiKey: typeof openRouter.apiKey === 'string' ? openRouter.apiKey : undefined,
         model: typeof openRouter.model === 'string' ? openRouter.model : undefined
       });
+      logger.info('settings.openrouter.updated', {
+        apiKeyProvided: typeof openRouter.apiKey === 'string' && openRouter.apiKey.length > 0,
+        model: typeof openRouter.model === 'string' ? openRouter.model : undefined
+      });
     }
 
     if (typeof request.body?.chromeProfilePath === 'string') {
       settings.setChromeProfilePath(request.body.chromeProfilePath);
+      logger.info('settings.chrome_profile_path.updated', {
+        configured: request.body.chromeProfilePath.length > 0
+      });
     }
 
     return response.status(200).json(settings.getPublicSettings());
@@ -265,7 +291,22 @@ export function createApp(options: CreateAppOptions = {}): Express {
       );
     }
 
-    return response.status(202).json(toSyncStatusResponse(bookmarkSync.startBookmarkSync()));
+    const run = bookmarkSync.startBookmarkSync();
+    logger.info('sync.bookmarks.started', { runId: run.id });
+    setTimeout(() => {
+      const latest = syncRuns.getLatestSyncRun();
+      if (latest?.id === run.id && latest.status !== 'running') {
+        logger.info('sync.bookmarks.finished', {
+          error: latest.errorMessage,
+          importedCount: latest.importedCount,
+          runId: latest.id,
+          skippedCount: latest.skippedCount,
+          status: latest.status,
+          updatedCount: latest.updatedCount
+        });
+      }
+    }, 0);
+    return response.status(202).json(toSyncStatusResponse(run));
   });
 
   app.get(`${API_BASE_PATH}/sync/status`, (_request, response) => {

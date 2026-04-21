@@ -6,6 +6,7 @@ import { createItemRepository } from '../../src/domain/items/item-repository';
 import { createSettingsRepository } from '../../src/domain/settings/settings-repository';
 import { createSummaryRepository } from '../../src/domain/summaries/summary-repository';
 import { createTagRepository } from '../../src/domain/tags/tag-repository';
+import type { AppLogger } from '../../src/logging/app-logger';
 
 function createOpenRouterFetchMock(content: string, status = 200) {
   return vi.fn(async () => {
@@ -30,11 +31,18 @@ function createOpenRouterFetchMock(content: string, status = 200) {
 function createApiTestContext(openRouterFetch?: typeof fetch) {
   const db = createInMemoryDatabase();
   initializeDatabase(db);
+  const logs: Array<{ event: string; metadata?: Record<string, unknown> }> = [];
+  const logger: AppLogger = {
+    error: (event, metadata) => logs.push({ event, metadata }),
+    info: (event, metadata) => logs.push({ event, metadata }),
+    warn: (event, metadata) => logs.push({ event, metadata })
+  };
 
   return {
-    app: createApp({ db, openRouterFetch }),
+    app: createApp({ db, logger, openRouterFetch }),
     db,
     items: createItemRepository(db),
+    logs,
     settings: createSettingsRepository(db),
     summaries: createSummaryRepository(db),
     tags: createTagRepository(db)
@@ -251,7 +259,7 @@ describe('summaries API', () => {
 
   it('generates and stores an AI summary with configured OpenRouter settings', async () => {
     const openRouterFetch = createOpenRouterFetchMock('Generated summary from OpenRouter.');
-    const { app, items, settings, summaries } = createApiTestContext(openRouterFetch);
+    const { app, items, logs, settings, summaries } = createApiTestContext(openRouterFetch);
     settings.updateOpenRouterSettings({
       apiKey: 'or-v1-secret',
       model: 'openai/gpt-5-mini'
@@ -283,6 +291,7 @@ describe('summaries API', () => {
     );
     const openRouterFetchCalls = openRouterFetch.mock.calls as unknown as [string, RequestInit][];
     expect(JSON.stringify(openRouterFetchCalls[0][1])).toContain('AI summary article');
+    expect(logs.some((entry) => entry.event === 'ai.summary.generated')).toBe(true);
   });
 
   it('replaces the current summary on AI regeneration', async () => {
@@ -333,7 +342,7 @@ describe('summaries API', () => {
 
   it('maps OpenRouter failures to upstream_error', async () => {
     const openRouterFetch = createOpenRouterFetchMock('bad gateway', 502);
-    const { app, items, settings } = createApiTestContext(openRouterFetch);
+    const { app, items, logs, settings } = createApiTestContext(openRouterFetch);
     settings.updateOpenRouterSettings({
       apiKey: 'or-v1-secret',
       model: 'openai/gpt-5-mini'
@@ -349,6 +358,7 @@ describe('summaries API', () => {
     expect(response.status).toBe(502);
     expect(response.body.error.code).toBe('upstream_error');
     expect(response.body.error.message).toBe('OpenRouter request failed.');
+    expect(logs.some((entry) => entry.event === 'ai.summary.failed')).toBe(true);
   });
 
   it('maps OpenRouter network errors to upstream_error', async () => {
@@ -375,7 +385,7 @@ describe('summaries API', () => {
 
 describe('settings API', () => {
   it('patches OpenRouter settings and never returns the raw API key', async () => {
-    const { app, settings } = createApiTestContext();
+    const { app, logs, settings } = createApiTestContext();
 
     const patchResponse = await request(app).patch('/api/v1/settings').send({
       openRouter: {
@@ -394,6 +404,8 @@ describe('settings API', () => {
     });
     expect(JSON.stringify(patchResponse.body)).not.toContain('or-v1-secret');
     expect(settings.getOpenRouterApiKey()).toBe('or-v1-secret');
+    expect(JSON.stringify(logs)).not.toContain('or-v1-secret');
+    expect(logs.some((entry) => entry.event === 'settings.openrouter.updated')).toBe(true);
 
     const getResponse = await request(app).get('/api/v1/settings');
     expect(getResponse.status).toBe(200);

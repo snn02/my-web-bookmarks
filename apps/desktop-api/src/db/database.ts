@@ -1,4 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
+import { mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { MIGRATIONS } from './migrations';
 
 export type AppDatabase = DatabaseSync;
@@ -7,6 +10,18 @@ export function createInMemoryDatabase(): AppDatabase {
   const db = new DatabaseSync(':memory:');
   db.exec('PRAGMA foreign_keys = ON');
   return db;
+}
+
+export function createFileDatabase(path: string): AppDatabase {
+  mkdirSync(dirname(path), { recursive: true });
+  const db = new DatabaseSync(path);
+  db.exec('PRAGMA foreign_keys = ON');
+  return db;
+}
+
+export function getDefaultDatabasePath(): string {
+  const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
+  return process.env.DATABASE_PATH ?? join(repoRoot, 'data', 'sqlite', 'app.db');
 }
 
 export function initializeDatabase(db: AppDatabase): void {
