@@ -129,6 +129,13 @@ export function createItemRepository(db: AppDatabase) {
     return row ? hydrate(row) : null;
   }
 
+  function getItemByNormalizedUrl(normalizedUrl: string): Item | null {
+    const row = db
+      .prepare('SELECT * FROM items WHERE normalized_url = ?')
+      .get(normalizedUrl) as ItemRow | undefined;
+    return row ? hydrate(row) : null;
+  }
+
   function upsertImportedItem(input: ImportedItemInput): Item {
     const normalizedUrl = normalizeUrl(input.url);
     const existing = db
@@ -269,6 +276,7 @@ export function createItemRepository(db: AppDatabase) {
   }
 
   return {
+    getItemByNormalizedUrl,
     getItem,
     listItems,
     updateStatus,

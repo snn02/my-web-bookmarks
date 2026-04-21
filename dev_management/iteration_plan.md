@@ -374,7 +374,7 @@ An iteration can move to `accepted` only when:
 
 ## Iteration 3: Chrome Bookmark Import And Sync
 
-**Status:** planned
+**Status:** ready_for_test
 
 **Entry Notes**
 
@@ -382,19 +382,20 @@ An iteration can move to `accepted` only when:
 - Start with Chrome bookmark parser fixtures and sync repository orchestration tests.
 - Add file-backed database wiring before or during Iteration 3 if manual API smoke testing needs persistent seeded data.
 - Keep the Chrome integration read-only.
+- 2026-04-21: Iteration 3 started. Implementation will focus on read-only Chrome bookmark parsing, import orchestration, single-active-run protection, and sync HTTP status.
 
 **Objective:** Import Chrome bookmarks from a Windows profile, deduplicate them, and expose asynchronous sync status.
 
 **Scope**
 
-- [ ] Implement Chrome `Bookmarks` file reader for configured profile path.
+- [x] Implement Chrome `Bookmarks` file reader for configured profile path.
 - [ ] Add safe default profile path detection for Windows.
-- [ ] Parse bookmark folders recursively and extract bookmark title, URL, source path, and source identifier.
-- [ ] Normalize URLs and upsert items by `normalized_url`.
-- [ ] Preserve user-managed status, tags, and summaries on re-import.
-- [ ] Implement `POST /sync/bookmarks` with single-active-run protection.
-- [ ] Implement `GET /sync/status`.
-- [ ] Record `importedCount`, `updatedCount`, `skippedCount`, and failure details.
+- [x] Parse bookmark folders recursively and extract bookmark title, URL, source path, and source identifier.
+- [x] Normalize URLs and upsert items by `normalized_url`.
+- [x] Preserve user-managed status, tags, and summaries on re-import.
+- [x] Implement `POST /sync/bookmarks` with single-active-run protection.
+- [x] Implement `GET /sync/status`.
+- [x] Record `importedCount`, `updatedCount`, `skippedCount`, and failure details.
 
 **Primary Files**
 
@@ -427,6 +428,42 @@ An iteration can move to `accepted` only when:
 **Exit Result**
 
 - The app can populate its local inbox from Chrome bookmarks and report sync status safely.
+
+**Implementation Notes**
+
+- 2026-04-21: Implemented read-only Chrome `Bookmarks` parser using configured `chrome_profile_path`.
+- 2026-04-21: Implemented bookmark sync service using item repository deduplication by normalized URL.
+- 2026-04-21: Implemented async `POST /sync/bookmarks` response with `running` status and background completion.
+- 2026-04-21: Implemented `GET /sync/status` with `idle`, `running`, `succeeded`, and `failed` API statuses.
+- 2026-04-21: Safe default Windows profile path detection remains open for QA/team review decision; current implementation uses configured settings path only.
+
+**Verification Evidence**
+
+- 2026-04-21: RED confirmed before implementation:
+  - parser and sync service modules did not exist.
+  - sync API routes returned 404.
+- 2026-04-21: Focused Iteration 3 tests passed:
+  - parser, sync service, and sync API route tests: 3 files, 7 tests passed.
+- 2026-04-21: Contract correction RED/GREEN:
+  - RED: `POST /sync/bookmarks` returned completed `succeeded` status instead of documented async `running`.
+  - GREEN: sync API returns `running` immediately and `GET /sync/status` later returns `succeeded`.
+- 2026-04-21: Full workspace verification passed:
+  - `npm run typecheck`: passed for all workspaces.
+  - `npm run lint`: passed for all workspaces.
+  - `npm test`: backend 27 tests passed, web 2 tests passed, shared 3 tests passed.
+
+**Tester Review Status**
+
+- Pending QA review.
+- Suggested QA checks:
+  - Run sync against fixture or copied Chrome profile path.
+  - Confirm imported/updated/skipped counts.
+  - Confirm repeated sync deduplicates by normalized URL.
+  - Confirm missing profile path creates failed sync status with useful error.
+
+**Team Review Status**
+
+- Pending review of parser source identifiers, async sync behavior, active-run protection, and whether default Windows profile detection should be completed in this iteration or deferred.
 
 ## Iteration 4: Web Inbox, Manual Processing, Search, And Filters
 

@@ -388,3 +388,72 @@ This log records implementation actions, planning decisions, verification eviden
 - Implement parser and URL deduplication through the existing item repository.
 - Add sync active-run protection and status endpoints.
 - Keep local Chrome bookmark access read-only.
+
+## 2026-04-21 - Iteration 3 started
+
+**Goal**
+
+- Import Chrome bookmarks from a configured local profile path, deduplicate imported items, and expose sync start/status through the HTTP API.
+
+**Scope decision**
+
+- Implement read-only Chrome `Bookmarks` JSON parsing.
+- Use existing item repository for URL normalization and deduplication.
+- Use existing settings repository for `chrome_profile_path`.
+- Use existing sync run repository for sync status and counts.
+- Keep bookmark deletion and Chrome bookmark editing out of scope.
+
+**Planned TDD slices**
+
+- Chrome bookmark parser fixture test for recursive folders.
+- Import service tests for created/updated/skipped counts and metadata preservation.
+- Failure test for missing or malformed bookmark files.
+- API tests for `POST /sync/bookmarks`, `GET /sync/status`, and `sync_already_running`.
+
+**Actions completed**
+
+- Added Chrome `Bookmarks` fixture under `apps/desktop-api/test/fixtures/chrome-profile/Bookmarks`.
+- Added parser tests for recursive Chrome bookmark folders.
+- Added sync service tests for:
+  - imported, updated, and skipped counts
+  - metadata preservation on re-import
+  - failed sync status for missing profile path
+- Added sync API tests for:
+  - `POST /sync/bookmarks`
+  - `GET /sync/status`
+  - `sync_already_running`
+- Confirmed RED state:
+  - missing parser and sync service modules
+  - sync API routes returning 404
+- Implemented read-only Chrome bookmarks parser.
+- Implemented bookmark sync service.
+- Implemented active sync run protection.
+- Implemented async sync API response and latest status mapping.
+- Refactored sync existing-item detection to use normalized URL lookup instead of text search.
+
+**Debugging notes**
+
+- Parser initially included both the Chrome root key and root display name in `sourceId`. It now keeps the root key plus user folder path to avoid redundant IDs such as `bookmark_bar/Bookmarks bar/...`.
+- API initially returned a completed `succeeded` sync response from `POST /sync/bookmarks`. The API spec requires asynchronous behavior, so the route now returns `running` immediately and completes the import in the background.
+
+**Verification evidence**
+
+- Focused Iteration 3 test suite passed on 2026-04-21:
+  - 3 test files passed.
+  - 7 tests passed.
+- `npm run typecheck` passed on 2026-04-21.
+- `npm run lint` passed on 2026-04-21.
+- `npm test` passed on 2026-04-21:
+  - Backend: 27 tests passed.
+  - Web: 2 tests passed.
+  - Shared: 3 tests passed.
+
+**Status**
+
+- Iteration 3 implementation is ready for tester review and team review.
+
+**Next review focus**
+
+- Decide whether default Windows Chrome profile path detection must be finished before accepting Iteration 3.
+- Review source ID stability for imported Chrome bookmarks.
+- Review async sync behavior and active-run protection.

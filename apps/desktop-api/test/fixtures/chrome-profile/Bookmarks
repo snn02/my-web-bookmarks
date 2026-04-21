@@ -1,0 +1,75 @@
+{
+  "checksum": "test-checksum",
+  "roots": {
+    "bookmark_bar": {
+      "children": [
+        {
+          "date_added": "13345678900000000",
+          "guid": "guid-vue",
+          "id": "1",
+          "name": "Vue Guide",
+          "type": "url",
+          "url": "https://Example.com/vue?utm_source=android#intro"
+        },
+        {
+          "children": [
+            {
+              "date_added": "13345678900000001",
+              "guid": "guid-sqlite",
+              "id": "2",
+              "name": "SQLite Notes",
+              "type": "url",
+              "url": "https://db.example.com/sqlite/"
+            },
+            {
+              "date_added": "13345678900000002",
+              "guid": "guid-invalid",
+              "id": "3",
+              "name": "Invalid URL",
+              "type": "url",
+              "url": "not a url"
+            }
+          ],
+          "date_added": "13345678900000003",
+          "date_modified": "13345678900000004",
+          "guid": "folder-guid",
+          "id": "4",
+          "name": "Reading",
+          "type": "folder"
+        }
+      ],
+      "date_added": "13345678900000005",
+      "date_modified": "13345678900000006",
+      "guid": "bookmark-bar-guid",
+      "id": "0",
+      "name": "Bookmarks bar",
+      "type": "folder"
+    },
+    "other": {
+      "children": [
+        {
+          "date_added": "13345678900000007",
+          "guid": "guid-vue-duplicate",
+          "id": "5",
+          "name": "Vue Guide Duplicate",
+          "type": "url",
+          "url": "https://example.com/vue"
+        }
+      ],
+      "date_added": "13345678900000008",
+      "guid": "other-guid",
+      "id": "6",
+      "name": "Other bookmarks",
+      "type": "folder"
+    },
+    "synced": {
+      "children": [],
+      "date_added": "13345678900000009",
+      "guid": "synced-guid",
+      "id": "7",
+      "name": "Mobile bookmarks",
+      "type": "folder"
+    }
+  },
+  "version": 1
+}

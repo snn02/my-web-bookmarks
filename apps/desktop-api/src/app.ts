@@ -4,6 +4,8 @@ import { createInMemoryDatabase, initializeDatabase, type AppDatabase } from './
 import { createItemRepository, type ItemSort, type ItemStatus } from './domain/items/item-repository';
 import { createSettingsRepository } from './domain/settings/settings-repository';
 import { createSummaryRepository } from './domain/summaries/summary-repository';
+import { createBookmarkSyncService } from './domain/sync/bookmark-sync-service';
+import { createSyncRunRepository, type SyncRun } from './domain/sync/sync-run-repository';
 import { createTagRepository } from './domain/tags/tag-repository';
 import { sendApiError } from './http/errors';
 
@@ -26,6 +28,8 @@ export function createApp(options: CreateAppOptions = {}): Express {
   const items = createItemRepository(db);
   const settings = createSettingsRepository(db);
   const summaries = createSummaryRepository(db);
+  const syncRuns = createSyncRunRepository(db);
+  const bookmarkSync = createBookmarkSyncService({ items, settings, syncRuns });
   const tags = createTagRepository(db);
   const app = express();
 
@@ -232,7 +236,49 @@ export function createApp(options: CreateAppOptions = {}): Express {
     return response.status(200).json(settings.getPublicSettings());
   });
 
+  app.post(`${API_BASE_PATH}/sync/bookmarks`, (_request, response) => {
+    if (syncRuns.hasActiveSyncRun('chrome_bookmark')) {
+      return sendApiError(
+        response,
+        409,
+        'sync_already_running',
+        'A bookmark sync is already running.'
+      );
+    }
+
+    return response.status(202).json(toSyncStatusResponse(bookmarkSync.startBookmarkSync()));
+  });
+
+  app.get(`${API_BASE_PATH}/sync/status`, (_request, response) => {
+    const latest = syncRuns.getLatestSyncRun();
+    return response.status(200).json(latest ? toSyncStatusResponse(latest) : idleSyncStatus());
+  });
+
   return app;
+}
+
+function idleSyncStatus() {
+  return {
+    error: null,
+    finishedAt: null,
+    importedCount: 0,
+    skippedCount: 0,
+    startedAt: null,
+    status: 'idle',
+    updatedCount: 0
+  };
+}
+
+function toSyncStatusResponse(run: SyncRun) {
+  return {
+    error: run.errorMessage,
+    finishedAt: run.finishedAt,
+    importedCount: run.importedCount,
+    skippedCount: run.skippedCount,
+    startedAt: run.startedAt,
+    status: run.status === 'success' ? 'succeeded' : run.status,
+    updatedCount: run.updatedCount
+  };
 }
 
 function clampIntegerQuery(

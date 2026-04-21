@@ -103,9 +103,17 @@ export function createSyncRunRepository(db: AppDatabase) {
     return row ? toSyncRun(row) : null;
   }
 
+  function hasActiveSyncRun(sourceType: string): boolean {
+    const row = db
+      .prepare("SELECT id FROM sync_runs WHERE source_type = ? AND status = 'running' LIMIT 1")
+      .get(sourceType);
+    return Boolean(row);
+  }
+
   return {
     finishSyncRun,
     getLatestSyncRun,
+    hasActiveSyncRun,
     startSyncRun
   };
 }
