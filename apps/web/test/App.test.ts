@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App.vue';
 
@@ -50,6 +50,28 @@ function createInitialResponses() {
       error: null
     })
   ];
+}
+
+function syncedItemList() {
+  return ok({
+    items: [
+      {
+        id: 'itm_2',
+        url: 'https://example.com/synced',
+        normalizedUrl: 'https://example.com/synced',
+        title: 'Synced Bookmark',
+        domain: 'example.com',
+        status: 'new',
+        importedAt: '2026-04-08T18:30:00Z',
+        updatedAt: '2026-04-08T18:30:00Z',
+        tags: [],
+        summary: null
+      }
+    ],
+    total: 1,
+    limit: 50,
+    offset: 0
+  });
 }
 
 describe('App', () => {
@@ -107,7 +129,6 @@ describe('App', () => {
       )
       .mockResolvedValueOnce(ok({ id: 'tag_2', name: 'reading' }))
       .mockResolvedValueOnce(ok({ id: 'itm_1', tags: [{ id: 'tag_2', name: 'reading' }] }))
-      .mockResolvedValueOnce(createInitialResponses()[1])
       .mockResolvedValueOnce(ok({ chromeProfilePath: 'C:\\Chrome\\Profile' }))
       .mockResolvedValueOnce(
         ok({
@@ -119,7 +140,19 @@ describe('App', () => {
           skippedCount: 0,
           error: null
         })
-      );
+      )
+      .mockResolvedValueOnce(
+        ok({
+          status: 'succeeded',
+          startedAt: '2026-04-08T18:20:00Z',
+          finishedAt: '2026-04-08T18:20:01Z',
+          importedCount: 1,
+          updatedCount: 0,
+          skippedCount: 0,
+          error: null
+        })
+      )
+      .mockResolvedValueOnce(syncedItemList());
     vi.stubGlobal('fetch', fetchMock);
 
     const wrapper = mount(App);
@@ -132,16 +165,61 @@ describe('App', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
 
     await wrapper.get('[aria-label="Mark Vue Guide as read"]').trigger('click');
+    await flushPromises();
     await wrapper.get('[aria-label="New tag name"]').setValue('reading');
     await wrapper.get('[aria-label="Create tag"]').trigger('click');
+    await flushPromises();
     await wrapper.get('[aria-label="Chrome profile path"]').setValue('C:\\Chrome\\Profile');
-    await wrapper.get('[aria-label="Save Chrome profile path"]').trigger('click');
     await wrapper.get('[aria-label="Sync bookmarks"]').trigger('click');
+    await flushPromises();
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Synced Bookmark'));
 
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/items/itm_1', expect.objectContaining({ method: 'PATCH' }));
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/tags', expect.objectContaining({ method: 'POST' }));
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/items/itm_1/tags', expect.objectContaining({ method: 'POST' }));
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/settings', expect.objectContaining({ method: 'PATCH' }));
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/sync/bookmarks', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/sync/status');
+    expect(wrapper.text()).toContain('Sync: succeeded | +1 / ~0 / skipped 0');
+  });
+
+  it('shows sync errors returned after a sync attempt', async () => {
+    const fetchMock = vi.fn();
+    for (const response of createInitialResponses()) {
+      fetchMock.mockResolvedValueOnce(response);
+    }
+    fetchMock
+      .mockResolvedValueOnce(ok({ chromeProfilePath: 'C:\\Chrome\\Default' }))
+      .mockResolvedValueOnce(
+        ok({
+          status: 'running',
+          startedAt: '2026-04-08T18:20:00Z',
+          finishedAt: null,
+          importedCount: 0,
+          updatedCount: 0,
+          skippedCount: 0,
+          error: null
+        })
+      )
+      .mockResolvedValueOnce(
+        ok({
+          status: 'failed',
+          startedAt: '2026-04-08T18:20:00Z',
+          finishedAt: '2026-04-08T18:20:01Z',
+          importedCount: 0,
+          updatedCount: 0,
+          skippedCount: 0,
+          error: 'Chrome Bookmarks file was not found at C:\\missing\\Bookmarks'
+        })
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const wrapper = mount(App);
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
+
+    await wrapper.get('[aria-label="Sync bookmarks"]').trigger('click');
+    await flushPromises();
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Chrome Bookmarks file was not found'));
   });
 });

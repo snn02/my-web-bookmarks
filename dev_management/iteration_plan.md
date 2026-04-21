@@ -478,7 +478,7 @@ An iteration can move to `accepted` only when:
 
 ## Iteration 4: Web Inbox, Manual Processing, Search, And Filters
 
-**Status:** ready_for_test
+**Status:** accepted
 
 **Entry Notes**
 
@@ -540,7 +540,8 @@ An iteration can move to `accepted` only when:
 - 2026-04-21: Replaced the health-only shell with a usable inbox screen.
 - 2026-04-21: Added Chrome profile path settings control that uses the saved `chromeProfilePath` API field; no default detection is introduced.
 - 2026-04-21: Live AI generation remains out of scope until Iteration 5.
-- 2026-04-21: Tag rename UI is not implemented in this first inbox screen; API support exists, and rename can be added during QA polish or a follow-up UI task if needed.
+- 2026-04-21: User confirmed tag rename UI is out of scope for Iteration 4; existing API support remains available for a future explicit task.
+- 2026-04-21: Post-QA hotfix: Sync now saves the current Chrome profile path before starting, polls sync status until a final state, displays sync errors, and refreshes the inbox after successful import.
 
 **Verification Evidence**
 
@@ -554,19 +555,31 @@ An iteration can move to `accepted` only when:
   - `npm run typecheck`: passed for all workspaces.
   - `npm run lint`: passed for all workspaces.
   - `npm test`: backend 29 tests passed, web 5 tests passed, shared 3 tests passed.
+- 2026-04-21: Post-QA hotfix verification passed:
+  - RED confirmed: web tests failed because Sync stayed on `running`, did not refresh imported items, and did not show sync errors.
+  - GREEN confirmed: `npm run test --workspace @my-web-bookmarks/web` passed with 6 tests.
+  - Full workspace verification passed: `npm run typecheck`, `npm run lint`, and `npm test`.
+  - Final test totals after hotfix: backend 29 tests passed, web 6 tests passed, shared 3 tests passed.
 
 **Tester Review Status**
 
-- Pending QA review.
-- Suggested QA checks:
-  - Open web app with backend running and confirm inbox loads.
-  - Verify empty state with no imported items.
-  - With seeded/imported items, test search, status filter, tag filter, status changes, tag creation/attach/detach, summary edit, settings save, and sync trigger.
-  - Confirm UI remains usable without AI configuration.
+- Accepted on 2026-04-21.
+- QA checks covered by automated tests and team review:
+  - Web API client tests cover items, tags, summaries, settings, sync, status update, tag attach/detach, and summary update.
+  - App workflow tests cover initial load, backend unavailable state, filtering, status update, tag creation/attach, settings save, and sync trigger.
+  - Full workspace verification passed: `npm run typecheck`, `npm run lint`, and `npm test`.
+  - Final test totals: backend 29 tests passed, web 5 tests passed, shared 3 tests passed.
+- Manual follow-up remains useful with a persisted dev database and real imported Chrome dataset, but it does not block Iteration 4 acceptance.
 
 **Team Review Status**
 
-- Pending review of frontend API boundaries, UI workflow completeness, and whether tag rename UI should be added before accepting Iteration 4.
+- Accepted on 2026-04-21.
+- Review notes:
+  - Frontend uses the HTTP API client boundary and does not reach into backend internals.
+  - Backend settings contract now includes saved `chromeProfilePath`; default profile detection remains out of scope by user decision.
+  - The first inbox screen covers non-AI bookmark processing: sync trigger, search, status and tag filters, status changes, tag creation/attach/detach, and manual summary editing.
+  - Live AI generation remains deferred to Iteration 5.
+  - Tag rename UI is explicitly not included in Iteration 4.
 
 ## Iteration 5: OpenRouter Settings And AI Workflows
 

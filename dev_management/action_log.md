@@ -575,3 +575,105 @@ This log records implementation actions, planning decisions, verification eviden
 - Decide whether tag rename UI is required before accepting Iteration 4.
 - Review whether the single-screen inbox workflow is ergonomic enough for first manual use.
 - Verify UI with a real synced dataset once a persisted dev database is introduced.
+
+## 2026-04-21 - Iteration 4 QA and team review
+
+**Scope decision**
+
+- User confirmed tag rename UI should not be implemented as part of Iteration 4.
+- Existing backend API support for tag rename remains available for a future explicit task.
+
+**QA actions**
+
+- Reviewed the web inbox workflow against the Iteration 4 acceptance scope.
+- Confirmed the implemented first screen covers:
+  - backend availability state;
+  - item loading;
+  - search and status/tag filters;
+  - status changes;
+  - tag creation, attach, and detach;
+  - summary preview and manual summary edit;
+  - Chrome profile path setting save;
+  - bookmark sync trigger and status display.
+- Confirmed live AI generation remains absent from the UI until Iteration 5.
+
+**Team review**
+
+- Frontend code uses `apps/web/src/api/client.ts` for HTTP API access.
+- No frontend code reaches directly into backend repositories, SQLite, or Chrome bookmark parser internals.
+- Backend settings contract now includes saved `chromeProfilePath`, matching the user decision to avoid profile path auto-detection.
+- The first inbox workflow is sufficient for V1 non-AI bookmark review and processing.
+
+**Verification evidence**
+
+- `npm run typecheck` passed on 2026-04-21.
+- `npm run lint` passed on 2026-04-21.
+- `npm test` passed on 2026-04-21:
+  - Backend: 29 tests passed.
+  - Web: 5 tests passed.
+  - Shared: 3 tests passed.
+
+**Decision**
+
+- Iteration 4 is accepted.
+- Tag rename UI is out of scope unless reintroduced by a later product decision.
+- Iteration 5 can start with OpenRouter settings and AI workflows.
+
+## 2026-04-21 - Iteration 4 post-QA sync UI hotfix
+
+**User finding**
+
+- During manual browser verification, pressing Sync appeared to do nothing useful: the UI showed `Sync: running`, item count stayed at 0, and no error was visible.
+
+**Root cause**
+
+- `POST /sync/bookmarks` starts an async backend run and returns the initial `running` status.
+- The web UI did not poll `GET /sync/status` after starting sync.
+- The web UI did not refresh the item list after successful sync.
+- The web UI did not render `syncStatus.error`, so a missing or wrong Chrome profile path was invisible to the user.
+- UX risk found during test tightening: Sync depended on a separately saved path, so a user could type a path and press Sync before the setting was persisted.
+
+**Planning mistakes and corrections**
+
+- Planning mistake: Iteration 4 acceptance treated "sync trigger exists" as enough, but did not define the complete user-observable sync lifecycle.
+  - Correction: future iteration acceptance criteria must describe the full async flow: start action, progress/running state, final state, error state, and data refresh after completion.
+- Planning mistake: QA checklist said to verify sync trigger and latest sync status, but did not require verifying the item list after sync completion.
+  - Correction: QA checks for import-like actions must include a before/after data assertion: item count changes, imported item appears, or a visible failure explains why it did not.
+- Planning mistake: the first UI test only asserted that `POST /sync/bookmarks` was called, so it tested transport wiring rather than the user's outcome.
+  - Correction: UI tests now assert outcome behavior: final sync status is rendered, errors are visible, and imported items appear after sync.
+- Planning mistake: the settings workflow assumed the user would press Save path before Sync.
+  - Correction: Sync now persists the current path before starting, and future UX planning should avoid hidden ordering requirements between adjacent controls.
+- Planning mistake: manual QA before acceptance did not include a real browser run against the running backend with a realistic Chrome profile path.
+  - Correction: before accepting UI iterations that cross frontend/backend boundaries, add at least one manual smoke pass using the actual dev server and a realistic local input.
+
+**TDD evidence**
+
+- Added failing web tests for:
+  - Sync polling to final `succeeded` status and refreshing the inbox.
+  - Showing sync failure errors returned by the backend.
+- RED confirmed: tests failed because the UI stayed on `running` and did not show the failure message.
+
+**Actions completed**
+
+- Updated Sync button behavior to save the current Chrome profile path before starting sync.
+- Added sync status polling after `POST /sync/bookmarks`.
+- Refreshed the inbox after successful sync completion.
+- Displayed sync failure errors inline near sync status.
+- Disabled the Sync button while a sync attempt is in progress.
+
+**Verification evidence**
+
+- `npm run test --workspace @my-web-bookmarks/web` passed on 2026-04-21:
+  - 2 test files passed.
+  - 6 tests passed.
+- `npm run typecheck` passed on 2026-04-21.
+- `npm run lint` passed on 2026-04-21.
+- `npm test` passed on 2026-04-21:
+  - Backend: 29 tests passed.
+  - Web: 6 tests passed.
+  - Shared: 3 tests passed.
+
+**Decision**
+
+- Iteration 4 remains accepted with a post-QA hotfix.
+- The user should retry Sync with a full Chrome profile folder path such as `C:\Users\<user>\AppData\Local\Google\Chrome\User Data\Default`; the app will now show the backend error if the `Bookmarks` file is not found.

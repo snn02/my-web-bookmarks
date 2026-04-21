@@ -35,6 +35,7 @@ const sort = ref<ItemSort>('importedAt:desc');
 const newTagName = ref('');
 const chromeProfilePath = ref('');
 const syncStatus = ref<SyncStatus | null>(null);
+const syncInProgress = ref(false);
 const summaryDrafts = ref<Record<string, string>>({});
 
 const selectedTagId = computed(() => tagFilter.value || undefined);
@@ -129,7 +130,28 @@ async function saveProfilePath(): Promise<void> {
 }
 
 async function syncBookmarks(): Promise<void> {
-  syncStatus.value = await startBookmarkSync();
+  syncInProgress.value = true;
+  errorMessage.value = '';
+  try {
+    if (chromeProfilePath.value.trim()) {
+      const settings = await saveChromeProfilePath(chromeProfilePath.value);
+      chromeProfilePath.value = settings.chromeProfilePath ?? chromeProfilePath.value;
+    }
+
+    const startedStatus = await startBookmarkSync();
+    syncStatus.value = startedStatus;
+    const finalStatus =
+      startedStatus.status === 'running' ? await waitForSyncCompletion() : startedStatus;
+    syncStatus.value = finalStatus;
+
+    if (finalStatus.status === 'succeeded') {
+      await applyFilters();
+    }
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to sync bookmarks.';
+  } finally {
+    syncInProgress.value = false;
+  }
 }
 
 function replaceItem(updated: BookmarkItem): void {
@@ -143,6 +165,22 @@ function syncSummaryDrafts(): void {
     drafts[item.id] = summaryDrafts.value[item.id] ?? item.summary?.content ?? '';
   }
   summaryDrafts.value = drafts;
+}
+
+async function waitForSyncCompletion(): Promise<SyncStatus> {
+  let latest = syncStatus.value;
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    latest = await fetchSyncStatus();
+    if (latest.status !== 'running') {
+      return latest;
+    }
+    await delay(300);
+  }
+  return latest ?? fetchSyncStatus();
+}
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 </script>
 
@@ -180,10 +218,11 @@ function syncSummaryDrafts(): void {
     <section class="settings-band" aria-label="Sync settings">
       <input v-model="chromeProfilePath" aria-label="Chrome profile path" placeholder="Chrome profile path" />
       <button aria-label="Save Chrome profile path" type="button" @click="saveProfilePath">Save path</button>
-      <button aria-label="Sync bookmarks" type="button" @click="syncBookmarks">Sync</button>
+      <button aria-label="Sync bookmarks" type="button" :disabled="syncInProgress" @click="syncBookmarks">Sync</button>
       <span v-if="syncStatus" class="sync-status">
         Sync: {{ syncStatus.status }} | +{{ syncStatus.importedCount }} / ~{{ syncStatus.updatedCount }} / skipped {{ syncStatus.skippedCount }}
       </span>
+      <span v-if="syncStatus?.error" class="error sync-error">{{ syncStatus.error }}</span>
     </section>
 
     <p v-if="loading" class="muted">Loading inbox...</p>
@@ -309,6 +348,11 @@ button {
   padding: 9px 12px;
 }
 
+button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .toolbar input,
 .settings-band input {
   min-width: min(360px, 100%);
@@ -322,6 +366,10 @@ button {
   color: #a31919;
   margin: 0 auto 16px;
   max-width: 1180px;
+}
+
+.sync-error {
+  margin: 0;
 }
 
 .empty {
