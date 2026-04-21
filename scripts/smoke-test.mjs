@@ -42,8 +42,14 @@ export function createSmokeDatabasePath(realDatabasePath = join(process.cwd(), '
   return join(tmpdir(), 'my-web-bookmarks-smoke', timestamp, 'smoke-app.db');
 }
 
+export function sliceNewLogContent(content, startOffset) {
+  return content.slice(startOffset);
+}
+
 export async function runSmokeAgainstBaseUrl({ baseUrl, timeoutMs = 15_000 }) {
   const checks = [];
+  const logPath = join(process.cwd(), 'data', 'logs', 'desktop-api.log');
+  const logStartOffset = existsSync(logPath) ? readFileSync(logPath, 'utf8').length : 0;
   try {
     await waitForHealth(baseUrl, timeoutMs);
     checks.push({ name: 'health', ok: true });
@@ -67,14 +73,14 @@ export async function runSmokeAgainstBaseUrl({ baseUrl, timeoutMs = 15_000 }) {
       ok: finalSync.status === 'failed' && typeof finalSync.error === 'string'
     });
 
-    const logPath = join(process.cwd(), 'data', 'logs', 'desktop-api.log');
     const logContent = existsSync(logPath) ? readFileSync(logPath, 'utf8') : '';
+    const newLogContent = sliceNewLogContent(logContent, logStartOffset);
     checks.push({
       name: 'structured logs written without secrets',
       ok:
-        logContent.includes('sync.bookmarks.started') &&
-        logContent.includes('sync.bookmarks.finished') &&
-        !logContent.includes('or-v1-')
+        newLogContent.includes('sync.bookmarks.started') &&
+        newLogContent.includes('sync.bookmarks.finished') &&
+        !newLogContent.includes('or-v1-')
     });
 
     assertChecks(checks);

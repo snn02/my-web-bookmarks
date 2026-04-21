@@ -717,7 +717,7 @@ These gates were added after the Iteration 4 post-QA sync issue.
 
 ## Iteration 6: Reliability, Observability, Packaging Readiness
 
-**Status:** ready_for_test
+**Status:** accepted
 
 **Entry Notes**
 
@@ -798,6 +798,7 @@ These gates were added after the Iteration 4 post-QA sync issue.
 - 2026-04-21: Added isolated smoke database path so `npm run smoke` does not mutate the real `data/sqlite/app.db`.
 - 2026-04-21: Added startup helper with tested `database.startup.failed` logging on database open/migration failure.
 - 2026-04-21: Fixed default database path to resolve from repo root instead of workspace `cwd`.
+- 2026-04-21: QA review fixed smoke log verification to inspect only log lines written during the current smoke run, avoiding false positives from previous runs.
 
 **Verification Evidence**
 
@@ -821,10 +822,23 @@ These gates were added after the Iteration 4 post-QA sync issue.
   - `npm run typecheck`: passed for all workspaces.
   - `npm run lint`: passed for all workspaces.
   - `npm test`: smoke helpers 7 tests passed, backend 39 tests passed, web 10 tests passed, shared 3 tests passed.
+- 2026-04-21: QA/team review verification passed:
+  - `npm run smoke`: passed with fresh log-tail verification.
+  - `npm run typecheck`: passed for all workspaces.
+  - `npm run lint`: passed for all workspaces.
+  - `npm test`: smoke helpers 8 tests passed, backend 39 tests passed, web 10 tests passed, shared 3 tests passed.
 
 **Tester Review Status**
 
-- Ready for QA review.
+- Accepted on 2026-04-21.
+- QA review covered:
+  - `npm run smoke` reports all checks as `ok`.
+  - smoke checks sync lifecycle final failure state and structured logs without secrets.
+  - smoke log verification uses only current-run log output.
+  - durable database path resolves to root `data/sqlite/app.db`.
+  - tests and smoke use in-memory or isolated temporary databases and do not create `apps/desktop-api/data`.
+  - backup and release docs describe `data/sqlite/app.db`, `DATABASE_PATH`, `data/logs/desktop-api.log`, and manual lifecycle checks.
+- Manual follow-up: run the Windows checklist with a real Chrome profile and optional real OpenRouter key before daily use.
 - Suggested QA checks:
   - Run `npm run smoke` and confirm the report shows all checks as `ok`.
   - Execute `docs/release/windows-v1-checklist.md` on Windows.
@@ -838,7 +852,14 @@ These gates were added after the Iteration 4 post-QA sync issue.
 
 **Team Review Status**
 
-- Pending review of smoke script reliability, release checklist completeness, packaging decision, structured logs, durable data, and startup failure handling.
+- Accepted on 2026-04-21.
+- Review notes:
+  - Smoke script is outcome-oriented and covers backend health, settings redaction, item list, sync final state, and structured log creation.
+  - Structured logs are JSONL and OpenRouter-style secrets are redacted.
+  - Normal backend startup uses durable SQLite at `data/sqlite/app.db`; `DATABASE_PATH` provides an override.
+  - Startup/migration failure path is covered by `startDesktopApi` and logs `database.startup.failed`.
+  - Packaging decision remains conservative for V1: local commands plus checklist; Electron/Tauri deferred.
+  - Residual technical risk: Node `node:sqlite` is still experimental and emits warnings during tests.
 
 ## Cross-Cutting Backlog
 

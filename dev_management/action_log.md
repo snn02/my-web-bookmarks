@@ -968,3 +968,69 @@ This log records implementation actions, planning decisions, verification eviden
 **Status**
 
 - Iteration 6 implementation is ready for QA and team review.
+
+## 2026-04-21 - Iteration 6 QA and team review
+
+**QA finding**
+
+- Finding: `npm run smoke` checked the whole `data/logs/desktop-api.log` file for sync log entries.
+  - Impact: old log lines from previous runs could make the smoke check pass even if the current run did not write structured sync logs.
+  - Fix: smoke now records the log file offset at the start of the run and validates only the fresh log tail written during the current smoke run.
+  - Regression test: smoke helper test now verifies `sliceNewLogContent`.
+
+**QA coverage**
+
+- `npm run smoke` validates backend health, settings redaction, item list API shape, sync lifecycle final failure state, and current-run structured logs without OpenRouter-style secrets.
+- Database tests validate file database persistence across close/reopen.
+- Startup tests validate database startup failure logging through `database.startup.failed`.
+- Docs cover Windows release checklist, manual smoke scenarios, `data/sqlite/app.db`, `DATABASE_PATH`, `data/logs/desktop-api.log`, backup, restore, and sharing cautions.
+
+**Team review**
+
+- V1 packaging decision is acceptable: local commands plus checklist, Electron/Tauri deferred.
+- Durable storage is simple and local-first: root `data/sqlite/app.db` by default, `DATABASE_PATH` override for isolation and future packaging.
+- Smoke tests avoid mutating the real app database.
+- Structured logs are JSONL and redacted for OpenRouter-style keys.
+- Startup failure handling is testable and logs actionable context.
+
+**Verification evidence**
+
+- `npm run smoke` passed on 2026-04-21:
+  - health: ok.
+  - settings redaction: ok.
+  - items list: ok.
+  - sync lifecycle started: ok.
+  - sync lifecycle failure is visible: ok.
+  - structured logs written without secrets: ok.
+- `npm run typecheck` passed on 2026-04-21.
+- `npm run lint` passed on 2026-04-21.
+- `npm test` passed on 2026-04-21:
+  - Smoke helpers: 8 tests passed.
+  - Backend: 39 tests passed.
+  - Web: 10 tests passed.
+  - Shared: 3 tests passed.
+
+**Residual risk**
+
+- Node `node:sqlite` remains experimental and emits warnings during tests.
+- Real-world smoke with an actual Chrome profile and optional real OpenRouter key should still be performed before daily use.
+
+**Decision**
+
+- Iteration 6 is accepted.
+- V1 is ready for local structured feedback and manual real-data smoke testing.
+
+## 2026-04-21 - V1 feedback fix iteration opened
+
+**Scope decision**
+
+- Opened a dedicated bug-fix and V1 adaptation iteration for tester feedback.
+- Created `dev_management/v1_feedback_fixes.md` as the working tracker for reported issues and small fixes.
+- Lessons learned will continue to be recorded in this `action_log.md`.
+
+**Working rules**
+
+- Process each feedback item as a small focused slice.
+- Update `docs` for every fix that changes documented functionality, setup, storage, sync, AI behavior, smoke tests, logs, or user workflows.
+- Add or update automated verification when behavior changes.
+- Keep V1 feedback status separate from the original iteration plan while preserving major lessons in the action log.

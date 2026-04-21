@@ -7,6 +7,7 @@ import {
   isFinalSyncStatus,
   isMainModule,
   redactText,
+  sliceNewLogContent,
   resolveNpmCommand
 } from './smoke-test.mjs';
 
@@ -55,5 +56,9 @@ describe('smoke-test helpers', () => {
 
     assert.match(smokePath, /smoke/);
     assert.notEqual(smokePath, 'C:\\repo\\data\\sqlite\\app.db');
+  });
+
+  it('checks only log content written during the current smoke run', () => {
+    assert.equal(sliceNewLogContent('old\nnew\n', 4), 'new\n');
   });
 });
