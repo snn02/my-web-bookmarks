@@ -67,7 +67,7 @@ Deliver an operationally reliable local launch flow for Windows with one-click s
 
 ## V2-I2: Desktop Shortcut Flow
 
-**Status:** in_progress
+**Status:** accepted
 
 **User-visible outcome (before/after)**
 
@@ -96,6 +96,10 @@ Deliver an operationally reliable local launch flow for Windows with one-click s
 - Updated manual and release docs with shortcut setup instructions.
 - Verified shortcut creation on a local test path:
   - `powershell -File scripts/create-desktop-shortcut.ps1 -ShortcutPath data/runtime/MyWebBookmarks-Test.lnk`
+- Verified real Desktop one-click launch with Playwright:
+  - launch source: `%USERPROFILE%\Desktop\My Web Bookmarks.lnk`
+  - check: `node scripts/check-shortcut-playwright.mjs`
+  - result: UI became available and reported `Backend: available`
 
 ## V2-I3: Browser E2E Smoke
 

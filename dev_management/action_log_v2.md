@@ -160,3 +160,21 @@ Source logs: `dev_management/action_log_v1.md`, `dev_management/v1_retrospective
 
 - Run manual Desktop validation for actual one-click launch from `%USERPROFILE%\\Desktop`.
 - Continue V2-I2 readiness checks before marking the iteration accepted.
+
+## 2026-04-22 - V2-I2 Desktop One-Click Validated With Playwright
+
+**What changed**
+
+- Added Playwright verification script `scripts/check-shortcut-playwright.mjs`.
+- Executed real one-click launch from Desktop shortcut and validated UI readiness via Playwright.
+
+**Verification**
+
+- `npm run launcher:create-shortcut` created `C:\Users\savin\Desktop\My Web Bookmarks.lnk`.
+- `Start-Process` launched the Desktop shortcut.
+- `node scripts/check-shortcut-playwright.mjs` passed and confirmed `Backend: available`.
+- `npm run launcher:stop` returned launcher stack to stopped state.
+
+**Lesson**
+
+- Browser launch and Playwright checks require non-sandbox execution in this environment because sandboxed process spawn fails with `EPERM`.
