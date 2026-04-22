@@ -1173,3 +1173,17 @@ This log records implementation actions, planning decisions, verification eviden
 - The new OpenRouter key is configured and usable.
 - The current failure is specific to the saved model/provider path, not to the local key storage or the general OpenRouter request code.
 - Next action for manual QA: change the saved model from `google/gemma-4-31b-it:free` to a working alternative, or wait for the upstream Google AI Studio free-model limit to clear.
+
+## 2026-04-22 - V1 feedback fixes accepted by manual QA
+
+**Manual QA result**
+
+- User confirmed generated Russian summary appears directly in the textarea.
+- User confirmed summary can be edited and saved.
+- User confirmed `Suggest tags` either returns suggestions or shows a readable non-JSON error.
+- User confirmed `New`, `Read`, and `Archive` status actions highlight correctly.
+
+**Status update**
+
+- Accepted: V1-FIX-001, V1-FIX-002, V1-FIX-004, V1-FIX-005, V1-FIX-006, V1-FIX-007.
+- Deferred: V1-FIX-003 remains open for a separate item-level tag assignment UI discussion.
