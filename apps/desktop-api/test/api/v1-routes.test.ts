@@ -369,6 +369,28 @@ describe('summaries API', () => {
     });
   });
 
+  it('maps OpenRouter rate limits to a specific upstream message', async () => {
+    const openRouterFetch = createOpenRouterFetchMock('rate limited', 429);
+    const { app, items, settings } = createApiTestContext(openRouterFetch);
+    settings.updateOpenRouterSettings({
+      apiKey: 'or-v1-secret',
+      model: 'google/gemma-4-31b-it:free'
+    });
+    const item = items.upsertImportedItem({
+      sourceType: 'chrome_bookmark',
+      title: 'Rate limited article',
+      url: 'https://example.com/rate-limited'
+    });
+
+    const response = await request(app).post(`/api/v1/items/${item.id}/summary`).send({});
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.code).toBe('upstream_error');
+    expect(response.body.error.message).toBe(
+      'OpenRouter rate limit reached. Wait and retry, or choose another model.'
+    );
+  });
+
   it('maps OpenRouter network errors to upstream_error', async () => {
     const openRouterFetch = vi.fn(async () => {
       throw new TypeError('network failure');

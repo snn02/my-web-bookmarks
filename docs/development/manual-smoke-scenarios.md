@@ -22,9 +22,10 @@ These scenarios mirror the lifecycle checks introduced after Iteration 4 and Ite
 - Expected result: AI action reaches a visible failure state and manual bookmark workflows still work.
 - Enter OpenRouter API key and model.
 - Press `Generate summary` without pressing `Save AI` first.
-- Expected result: settings are saved or validated as part of the action, then the UI shows a generated summary or a visible upstream error.
+- Expected result: settings are saved or validated as part of the action, then the generated Russian summary appears directly in the editable summary field, or the UI shows a visible upstream error.
+- If OpenRouter returns `429`, expected result: the UI says the OpenRouter rate limit was reached and suggests waiting or choosing another model.
 - Press `Suggest tags`.
-- Expected result: suggestions appear but are not persisted.
+- Expected result: short tag suggestions appear but are not persisted.
 - If OpenRouter returns an upstream failure, expected result: the UI shows a readable troubleshooting message, not a raw JSON error payload.
 - Confirm one suggestion.
 - Expected result: the tag appears on the item.

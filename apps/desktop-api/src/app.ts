@@ -325,10 +325,26 @@ function sendAiError(response: Parameters<typeof sendApiError>[0], error: unknow
   }
 
   if (error instanceof AiUpstreamError) {
-    return sendApiError(response, 502, 'upstream_error', 'OpenRouter request failed.');
+    return sendApiError(response, 502, 'upstream_error', getAiUpstreamMessage(error));
   }
 
   throw error;
+}
+
+function getAiUpstreamMessage(error: AiUpstreamError): string {
+  if (error.details?.status === 429) {
+    return 'OpenRouter rate limit reached. Wait and retry, or choose another model.';
+  }
+
+  if (error.details?.status === 401 || error.details?.status === 403) {
+    return 'OpenRouter rejected the API key or access for this model.';
+  }
+
+  if (error.details?.status === 400 || error.details?.status === 404) {
+    return 'OpenRouter rejected the model or request format.';
+  }
+
+  return 'OpenRouter request failed.';
 }
 
 function getAiErrorLogMetadata(error: unknown): Record<string, unknown> {

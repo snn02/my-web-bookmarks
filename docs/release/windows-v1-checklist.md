@@ -57,10 +57,11 @@ C:\Users\<user>\AppData\Local\Google\Chrome\User Data\Default
 - Confirm the app remains usable and shows a visible AI configuration error.
 - Enter an OpenRouter API key and a low-cost model.
 - Press `Generate summary` without pressing `Save AI` first.
-- Confirm a generated summary appears or a visible upstream/configuration error appears.
+- Confirm a generated Russian summary appears directly in the editable summary field, or a visible upstream/configuration error appears.
 - Press `Suggest tags`.
 - Confirm suggestions are not attached until one is explicitly selected.
 - If OpenRouter fails upstream, confirm the UI shows a readable troubleshooting message instead of raw JSON.
+- If OpenRouter returns a rate limit, confirm the UI says to wait and retry or choose another model.
 - Confirm the raw API key is not shown after save or generation.
 
 ## Failure Modes

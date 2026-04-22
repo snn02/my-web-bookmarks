@@ -116,4 +116,24 @@ describe('api client', () => {
       'OpenRouter request failed. Check API key, model name, network access, or provider availability.'
     );
   });
+
+  it('keeps specific OpenRouter upstream guidance when the API provides it', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        text: async () =>
+          JSON.stringify({
+            error: {
+              code: 'upstream_error',
+              message: 'OpenRouter rate limit reached. Wait and retry, or choose another model.'
+            }
+          })
+      })
+    );
+
+    await expect(generateSummary('itm_1')).rejects.toMatchObject({
+      message: 'OpenRouter rate limit reached. Wait and retry, or choose another model.'
+    });
+  });
 });

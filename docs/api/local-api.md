@@ -61,6 +61,7 @@ Frontend behavior:
 - The API returns structured JSON errors for machine handling.
 - The web client renders user-readable messages instead of raw JSON payloads.
 - For `upstream_error` from AI endpoints, the web client should include guidance to check the OpenRouter API key, model name, network access, or provider availability.
+- If the backend provides more specific OpenRouter guidance, such as a rate limit message, the web client should render that specific message without adding generic guidance.
 
 ## Resource Models
 
@@ -128,6 +129,7 @@ Summary rules:
 - Only one current summary is stored per item
 - AI generation replaces the current stored summary
 - Manual editing updates the same stored summary
+- AI-generated summaries are requested in Russian for V1.
 - Summary version history is not stored in V1
 
 ### Settings
@@ -458,6 +460,7 @@ Errors:
 - `404 Not Found` when the item does not exist
 - `409 Conflict` with `ai_not_configured` when OpenRouter is not configured
 - `502 Bad Gateway` with `upstream_error` when AI generation fails upstream
+- `upstream_error` may use a specific message for OpenRouter rate limits, rejected keys, rejected model names, or invalid request formats
 
 ### `PATCH /items/:itemId/summary`
 
@@ -518,6 +521,7 @@ Rules:
 
 - Suggestions are not saved automatically
 - The frontend must explicitly attach confirmed tags through tag endpoints
+- The backend asks OpenRouter for one short tag per line and tolerates JSON, comma-separated, or newline-separated model output.
 
 Errors:
 

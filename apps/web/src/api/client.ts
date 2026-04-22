@@ -200,7 +200,7 @@ async function parseApiErrorMessage(response: Response): Promise<string> {
       };
     };
     if (parsed.error?.code === 'upstream_error') {
-      return `${parsed.error.message ?? 'OpenRouter request failed.'} Check API key, model name, network access, or provider availability.`;
+      return formatUpstreamErrorMessage(parsed.error.message);
     }
     if (parsed.error?.message) {
       return parsed.error.message;
@@ -210,4 +210,15 @@ async function parseApiErrorMessage(response: Response): Promise<string> {
   }
 
   return text || `Request failed with status ${response.status}.`;
+}
+
+function formatUpstreamErrorMessage(message?: string): string {
+  const fallback = 'OpenRouter request failed.';
+  const text = message ?? fallback;
+  const hasSpecificGuidance =
+    text.includes('rate limit') || text.includes('rejected') || text.includes('choose another model');
+
+  return hasSpecificGuidance
+    ? text
+    : `${text} Check API key, model name, network access, or provider availability.`;
 }

@@ -21,8 +21,8 @@
 
 ## Summary
 
-11. As a user, I want AI to generate a summary for an article so I can quickly decide whether to read it in full.
-12. As a user, I want to edit the saved summary manually so I can correct or refine it.
+11. As a user, I want AI to generate a Russian summary for an article so I can quickly decide whether to read it in full.
+12. As a user, I want the generated summary to appear directly in the editable field so I can correct or refine it immediately.
 13. As a user, I want the current summary to be stored locally so I do not need to recreate it every time.
 
 ## Retrieval

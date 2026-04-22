@@ -1104,3 +1104,72 @@ This log records implementation actions, planning decisions, verification eviden
 - Implement V1-FIX-004 and V1-FIX-005 with direct regression tests.
 - For V1-FIX-006, first add safe diagnostics that capture OpenRouter HTTP status and response-shape context without logging API keys or full provider payloads; then adjust the tag suggestion prompt/parsing based on evidence.
 - Keep V1-FIX-003 deferred until the separate tag assignment UI discussion.
+
+## 2026-04-22 - V1 feedback batch 2 implemented
+
+**Scope delivered**
+
+- V1-FIX-004: removed the duplicate summary preview above the textarea and made generated summaries populate the editable field immediately.
+- V1-FIX-005: updated the summary prompt to request Russian output.
+- V1-FIX-006: changed tag suggestion prompting from strict JSON-only to one tag per line, while keeping tolerant parsing for JSON, comma-separated, and newline-separated responses.
+- V1-FIX-007: investigated a fresh `Generate summary` failure and found OpenRouter HTTP `429` for `google/gemma-4-31b-it:free`; backend now returns a specific rate-limit message and frontend preserves it without adding generic guidance.
+
+**TDD evidence**
+
+- RED: web test failed because textarea still contained the old summary after AI generation.
+- RED: backend tests failed because the summary prompt did not include `Russian`, and tag suggestions still requested a `JSON array`.
+- RED: frontend API client exact-message test failed because specific rate-limit guidance was polluted with generic OpenRouter guidance.
+- GREEN: targeted web and backend tests passed after the fixes.
+
+**Runtime investigation**
+
+- Fresh `data/logs/desktop-api.log` entries on 2026-04-22 showed `ai.summary.failed` with `upstreamReason: non_ok_response` and `upstreamStatus: 429`.
+- Conclusion: the repeated `Generate summary` failure was an OpenRouter rate limit/quota response for the current free model, not an invalid saved API key.
+
+**Documentation updated**
+
+- `docs/development/manual-smoke-scenarios.md`: summary should appear in the editable field, Russian output is expected, and rate limits should show retry/model guidance.
+- `docs/release/windows-v1-checklist.md`: AI smoke pass now checks Russian editable summaries and rate-limit messaging.
+- `docs/api/local-api.md`: documented Russian summaries, tolerant tag suggestion parsing, and specific upstream guidance handling.
+- `docs/product/user-stories.md`: summary user stories now reflect Russian generation and immediate editability.
+
+**Verification evidence**
+
+- `npm run typecheck` passed on 2026-04-22.
+- `npm run lint` passed on 2026-04-22.
+- `npm test` passed on 2026-04-22:
+  - Smoke helpers: 8 tests passed.
+  - Backend: 40 tests passed.
+  - Web: 12 tests passed.
+  - Shared: 3 tests passed.
+
+**Lessons learned**
+
+- Provider-specific statuses must survive the backend/frontend boundary; generic upstream messages hide the actual next action.
+- Free OpenRouter models can succeed and then quickly return `429`, so manual QA should record model name and timestamp with AI failures.
+- Editable generated content should have one obvious source of truth in the UI; preview-plus-editor creates ambiguity.
+
+## 2026-04-22 - OpenRouter direct diagnostic
+
+**Trigger**
+
+- User generated a new OpenRouter key, but `Generate summary` still returned: `OpenRouter rate limit reached. Wait and retry, or choose another model.`
+- This needed a direct check outside the UI/backend workflow.
+
+**Diagnostic added**
+
+- Added `scripts/openrouter-diagnostic.mjs`.
+- The script reads the saved local OpenRouter settings from `data/sqlite/app.db`, prints only a SHA-256 key fingerprint, and sends a minimal `chat/completions` request.
+- The script reports HTTP status, selected response headers, and a truncated provider body preview without printing the API key.
+
+**Evidence**
+
+- Saved model `google/gemma-4-31b-it:free` returned HTTP `429`.
+- OpenRouter response body said the model is temporarily rate-limited upstream by `Google AI Studio`, with `is_byok:false`.
+- The same saved key succeeded with `openai/gpt-oss-20b:free`, returning HTTP `200` and content `ok`.
+
+**Conclusion**
+
+- The new OpenRouter key is configured and usable.
+- The current failure is specific to the saved model/provider path, not to the local key storage or the general OpenRouter request code.
+- Next action for manual QA: change the saved model from `google/gemma-4-31b-it:free` to a working alternative, or wait for the upstream Google AI Studio free-model limit to clear.
