@@ -62,3 +62,34 @@ This log is the active implementation journal for V3.
 **Lesson that changes future work**
 
 - In this environment, browser/Vite test commands should be executed with escalated permissions when sandbox `EPERM` appears.
+
+## 2026-04-22 - V3-I2 Completed (Separate Settings Screen)
+
+**What changed**
+
+- Added application section navigation (`Inbox` / `Settings`) with URL-backed views:
+  - `/` for Inbox
+  - `/settings` for Settings
+- Moved settings controls out of Inbox:
+  - Chrome profile path save controls now exist only on Settings screen.
+  - OpenRouter API key/model save controls now exist only on Settings screen.
+- Kept Inbox focused on processing workflows (filters, sync trigger, list operations).
+- Updated web tests to validate separated views and settings navigation behavior.
+
+**What failed first**
+
+- Web tests initially started in the wrong view because browser history path was preserved between test cases.
+- Sync error test mock sequence still expected old Inbox-side settings save call.
+
+**What passed after**
+
+- Added per-test URL reset to `/` in web test setup.
+- Updated sync error test mocks for the new settings flow.
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm test` passed.
+- `npm run smoke` passed.
+
+**Lesson that changes future work**
+
+- When introducing URL-based UI view switching, explicitly reset history state in test setup to avoid cross-test view leakage.

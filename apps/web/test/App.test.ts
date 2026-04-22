@@ -107,9 +107,16 @@ async function expandItem(wrapper: any, title: string): Promise<void> {
   }
 }
 
+async function openView(wrapper: any, view: 'inbox' | 'settings'): Promise<void> {
+  const label = view === 'inbox' ? 'Open inbox view' : 'Open settings view';
+  await wrapper.get(`[aria-label="${label}"]`).trigger('click');
+  await flushPromises();
+}
+
 describe('App', () => {
   beforeEach(() => {
     vi.unstubAllGlobals();
+    window.history.replaceState({}, '', '/');
   });
 
   it('shows backend availability when health check succeeds', async () => {
@@ -133,6 +140,25 @@ describe('App', () => {
     expect(wrapper.get('[aria-label="Mark Vue Guide as new"]').classes()).toContain('status-active');
   });
 
+  it('keeps settings controls on settings view and out of inbox view', async () => {
+    const fetchMock = vi.fn();
+    for (const response of createInitialResponses()) {
+      fetchMock.mockResolvedValueOnce(response);
+    }
+    vi.stubGlobal('fetch', fetchMock);
+
+    const wrapper = mount(App);
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Backend: available'));
+
+    expect(wrapper.find('[aria-label="Chrome profile path"]').exists()).toBe(false);
+    expect(wrapper.find('[aria-label="OpenRouter API key"]').exists()).toBe(false);
+
+    await openView(wrapper, 'settings');
+    expect(wrapper.find('[aria-label="Chrome profile path"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="OpenRouter API key"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="Search bookmarks"]').exists()).toBe(false);
+  });
+
   it('shows backend unavailable state when health check fails', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
 
@@ -140,7 +166,7 @@ describe('App', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('Backend: unavailable'));
   });
 
-  it('filters, updates status, creates global tags, saves settings, and starts sync', async () => {
+  it('filters, updates status, creates global tags, and starts sync while settings are separate', async () => {
     const fetchMock = vi.fn();
     for (const response of createInitialResponses()) {
       fetchMock.mockResolvedValueOnce(response);
@@ -208,7 +234,12 @@ describe('App', () => {
     await wrapper.get('[aria-label="New tag name"]').setValue('reading');
     await wrapper.get('[aria-label="Create tag"]').trigger('click');
     await flushPromises();
+
+    await openView(wrapper, 'settings');
     await wrapper.get('[aria-label="Chrome profile path"]').setValue('C:\\Chrome\\Profile');
+    await wrapper.get('[aria-label="Save Chrome profile path"]').trigger('click');
+    await flushPromises();
+    await openView(wrapper, 'inbox');
     await wrapper.get('[aria-label="Sync bookmarks"]').trigger('click');
     await flushPromises();
     await vi.waitFor(() => expect(wrapper.text()).toContain('Synced Bookmark'));
@@ -261,7 +292,6 @@ describe('App', () => {
       fetchMock.mockResolvedValueOnce(response);
     }
     fetchMock
-      .mockResolvedValueOnce(ok({ chromeProfilePath: 'C:\\Chrome\\Default' }))
       .mockResolvedValueOnce(
         ok({
           status: 'running',
@@ -338,8 +368,6 @@ describe('App', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
 
     await expandItem(wrapper, 'Vue Guide');
-    await wrapper.get('[aria-label="OpenRouter API key"]').setValue('or-v1-secret');
-    await wrapper.get('[aria-label="OpenRouter model"]').setValue('openai/gpt-5-mini');
     await wrapper.get('[aria-label="Generate summary for Vue Guide"]').trigger('click');
     await flushPromises();
 
@@ -424,8 +452,10 @@ describe('App', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const wrapper = mount(App);
+    await openView(wrapper, 'settings');
     await vi.waitFor(() => expect(wrapper.text()).toContain('OpenRouter: configured'));
 
+    await openView(wrapper, 'inbox');
     await expandItem(wrapper, 'Vue Guide');
     await wrapper.get('[aria-label="Generate summary for Vue Guide"]').trigger('click');
     await flushPromises();

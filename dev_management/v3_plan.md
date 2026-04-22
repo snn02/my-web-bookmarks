@@ -8,7 +8,7 @@ Deliver a cleaner, modernized workflow-focused UI by splitting Inbox work from S
 
 ## V3-I1: Compact Inbox List + Accordion Details
 
-**Status:** in_progress  
+**Status:** accepted  
 **Issue:** #1 ([URL](https://github.com/snn02/my-web-bookmarks/issues/1))
 
 **User-visible outcome (before/after)**
@@ -39,7 +39,7 @@ Deliver a cleaner, modernized workflow-focused UI by splitting Inbox work from S
 
 ## V3-I2: Separate Settings Screen
 
-**Status:** planned  
+**Status:** accepted  
 **Issue:** #2 ([URL](https://github.com/snn02/my-web-bookmarks/issues/2))
 
 **User-visible outcome (before/after)**

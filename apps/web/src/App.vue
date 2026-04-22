@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { API_BASE_PATH, type HealthResponse } from '@my-web-bookmarks/shared';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import {
   attachTagToItem,
   createTag,
@@ -25,6 +25,7 @@ import {
 } from './api/client';
 
 type BackendState = 'checking' | 'available' | 'unavailable';
+type AppView = 'inbox' | 'settings';
 
 const backendState = ref<BackendState>('checking');
 const items = ref<BookmarkItem[]>([]);
@@ -49,14 +50,20 @@ const aiErrorMessage = ref('');
 const tagSuggestionsByItemId = ref<Record<string, TagSuggestion[]>>({});
 const tagSearchByItemId = ref<Record<string, string>>({});
 const expandedItemIds = ref<string[]>([]);
+const currentView = ref<AppView>(viewFromPath(currentPath()));
 
 const selectedTagId = computed(() => tagFilter.value || undefined);
 
 onMounted(async () => {
+  window.addEventListener('popstate', handlePopState);
   await checkBackend();
   if (backendState.value === 'available') {
     await loadInitialData();
   }
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('popstate', handlePopState);
 });
 
 async function checkBackend(): Promise<void> {
@@ -160,11 +167,6 @@ async function syncBookmarks(): Promise<void> {
   syncInProgress.value = true;
   errorMessage.value = '';
   try {
-    if (chromeProfilePath.value.trim()) {
-      const settings = await saveChromeProfilePath(chromeProfilePath.value);
-      chromeProfilePath.value = settings.chromeProfilePath ?? chromeProfilePath.value;
-    }
-
     const startedStatus = await startBookmarkSync();
     syncStatus.value = startedStatus;
     const finalStatus =
@@ -305,6 +307,30 @@ async function waitForSyncCompletion(): Promise<SyncStatus> {
 function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
+
+function currentPath(): string {
+  return typeof window === 'undefined' ? '/' : window.location.pathname;
+}
+
+function viewFromPath(pathname: string): AppView {
+  return pathname === '/settings' ? 'settings' : 'inbox';
+}
+
+function pathFromView(view: AppView): string {
+  return view === 'settings' ? '/settings' : '/';
+}
+
+function navigateTo(view: AppView): void {
+  currentView.value = view;
+  const nextPath = pathFromView(view);
+  if (window.location.pathname !== nextPath) {
+    window.history.pushState({}, '', nextPath);
+  }
+}
+
+function handlePopState(): void {
+  currentView.value = viewFromPath(window.location.pathname);
+}
 </script>
 
 <template>
@@ -312,12 +338,36 @@ function delay(milliseconds: number): Promise<void> {
     <header class="topbar">
       <div>
         <p class="eyebrow">My Web Bookmarks</p>
-        <h1>Reading inbox</h1>
+        <h1>{{ currentView === 'inbox' ? 'Reading inbox' : 'Settings' }}</h1>
       </div>
-      <p class="status-line">Backend: {{ backendState }}</p>
+      <div class="topbar-right">
+        <nav class="view-switch" aria-label="App sections">
+          <button
+            aria-label="Open inbox view"
+            type="button"
+            :class="{ 'status-active': currentView === 'inbox' }"
+            @click="navigateTo('inbox')"
+          >
+            Inbox
+          </button>
+          <button
+            aria-label="Open settings view"
+            type="button"
+            :class="{ 'status-active': currentView === 'settings' }"
+            @click="navigateTo('settings')"
+          >
+            Settings
+          </button>
+        </nav>
+        <p class="status-line">Backend: {{ backendState }}</p>
+      </div>
     </header>
 
-    <section class="toolbar" aria-label="Inbox controls">
+    <p v-if="loading" class="muted">Loading inbox...</p>
+    <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+    <p v-if="aiErrorMessage" class="error">{{ aiErrorMessage }}</p>
+
+    <section v-if="currentView === 'inbox'" class="toolbar" aria-label="Inbox controls">
       <input v-model="searchQuery" aria-label="Search bookmarks" placeholder="Search title, URL, domain, summary" />
       <select v-model="statusFilter" aria-label="Status filter">
         <option value="">All statuses</option>
@@ -338,9 +388,7 @@ function delay(milliseconds: number): Promise<void> {
       <button aria-label="Apply filters" type="button" @click="applyFilters">Apply</button>
     </section>
 
-    <section class="settings-band" aria-label="Sync settings">
-      <input v-model="chromeProfilePath" aria-label="Chrome profile path" placeholder="Chrome profile path" />
-      <button aria-label="Save Chrome profile path" type="button" @click="saveProfilePath">Save path</button>
+    <section v-if="currentView === 'inbox'" class="sync-band" aria-label="Sync controls">
       <button aria-label="Sync bookmarks" type="button" :disabled="syncInProgress" @click="syncBookmarks">Sync</button>
       <span v-if="syncStatus" class="sync-status">
         Sync: {{ syncStatus.status }} | +{{ syncStatus.importedCount }} / ~{{ syncStatus.updatedCount }} / skipped {{ syncStatus.skippedCount }}
@@ -348,27 +396,18 @@ function delay(milliseconds: number): Promise<void> {
       <span v-if="syncStatus?.error" class="error sync-error">{{ syncStatus.error }}</span>
     </section>
 
-    <section class="settings-band" aria-label="AI settings">
-      <input v-model="openRouterApiKey" aria-label="OpenRouter API key" placeholder="OpenRouter API key" type="password" />
-      <input v-model="openRouterModel" aria-label="OpenRouter model" placeholder="OpenRouter model" />
-      <button aria-label="Save OpenRouter settings" type="button" @click="saveAiSettings">Save AI</button>
-      <span class="sync-status">OpenRouter: {{ openRouterConfigured ? 'configured' : 'not configured' }}</span>
-    </section>
-
-    <p v-if="loading" class="muted">Loading inbox...</p>
-    <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-    <p v-if="aiErrorMessage" class="error">{{ aiErrorMessage }}</p>
-
-    <section class="summary-row" aria-label="Inbox summary">
+    <section v-if="currentView === 'inbox'" class="summary-row" aria-label="Inbox summary">
       <strong>{{ total }}</strong>
       <span>items</span>
       <input v-model="newTagName" aria-label="New tag name" placeholder="New tag" />
       <button aria-label="Create tag" type="button" @click="createGlobalTag">Create tag</button>
     </section>
 
-    <section v-if="!loading && items.length === 0" class="empty">No bookmarks match the current view.</section>
+    <section v-if="currentView === 'inbox' && !loading && items.length === 0" class="empty">
+      No bookmarks match the current view.
+    </section>
 
-    <section class="item-list" aria-label="Bookmark list">
+    <section v-if="currentView === 'inbox'" class="item-list" aria-label="Bookmark list">
       <article v-for="item in items" :key="item.id" class="item-card">
         <button
           class="item-row"
@@ -479,6 +518,25 @@ function delay(milliseconds: number): Promise<void> {
         </div>
       </article>
     </section>
+
+    <section v-if="currentView === 'settings'" class="settings-view" aria-label="Application settings">
+      <section class="settings-band" aria-label="Sync settings">
+        <input v-model="chromeProfilePath" aria-label="Chrome profile path" placeholder="Chrome profile path" />
+        <button aria-label="Save Chrome profile path" type="button" @click="saveProfilePath">Save path</button>
+      </section>
+
+      <section class="settings-band" aria-label="AI settings">
+        <input
+          v-model="openRouterApiKey"
+          aria-label="OpenRouter API key"
+          placeholder="OpenRouter API key"
+          type="password"
+        />
+        <input v-model="openRouterModel" aria-label="OpenRouter model" placeholder="OpenRouter model" />
+        <button aria-label="Save OpenRouter settings" type="button" @click="saveAiSettings">Save AI</button>
+        <span class="sync-status">OpenRouter: {{ openRouterConfigured ? 'configured' : 'not configured' }}</span>
+      </section>
+    </section>
   </main>
 </template>
 
@@ -500,6 +558,7 @@ function delay(milliseconds: number): Promise<void> {
 
 .topbar,
 .toolbar,
+.sync-band,
 .settings-band,
 .summary-row {
   align-items: center;
@@ -511,9 +570,22 @@ function delay(milliseconds: number): Promise<void> {
 }
 
 .toolbar,
+.sync-band,
 .settings-band,
 .summary-row {
   justify-content: flex-start;
+}
+
+.topbar-right {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.view-switch {
+  display: flex;
+  gap: 8px;
 }
 
 .eyebrow,
@@ -568,6 +640,11 @@ button:disabled {
 .toolbar input,
 .settings-band input {
   min-width: min(360px, 100%);
+}
+
+.settings-view {
+  margin: 0 auto;
+  max-width: 1180px;
 }
 
 .sync-status {
@@ -737,7 +814,9 @@ button:disabled {
 
 @media (max-width: 780px) {
   .topbar,
+  .topbar-right,
   .toolbar,
+  .sync-band,
   .settings-band,
   .summary-row,
   .item-row {
