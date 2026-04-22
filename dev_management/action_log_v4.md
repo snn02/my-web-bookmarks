@@ -29,3 +29,37 @@ This log is the active implementation journal for V4.
 **Next**
 
 - Define V4 scope and create `dev_management/v4_plan.md`.
+
+## 2026-04-23 - V4 Tracking Model Confirmed
+
+**Change**
+
+- Confirmed V4 process model:
+  - no separate spec files;
+  - create and maintain `dev_management/v4_plan.md` with slice statuses and issue links;
+  - keep detailed implementation/design/spec information in each related GitHub Issue;
+  - maintain this log (`dev_management/action_log_v4.md`) as the active implementation journal.
+
+**Why**
+
+- Keep planning and execution trace simple, version-scoped, and aligned with issue-driven delivery.
+
+**Next**
+
+- Create V4-I1 GitHub Issue from `dev_management/v4_plan.md` and link it back into the plan.
+
+## 2026-04-23 - V4-I1 Issue Created
+
+**Change**
+
+- Created GitHub issue for the first V4 slice:
+  - `#4` https://github.com/snn02/my-web-bookmarks/issues/4
+- Added the issue reference to `dev_management/v4_plan.md`.
+
+**Why**
+
+- V4 process requires issue-first execution with detailed slice specification in the issue itself.
+
+**Next**
+
+- Start implementation for V4-I1 as small visual-only commits with verification after each slice.
