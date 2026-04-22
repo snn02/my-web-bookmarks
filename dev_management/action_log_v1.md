@@ -820,7 +820,7 @@ This archived log records V1 implementation actions, planning decisions, verific
 
 **Documentation added**
 
-- `docs/release/windows-v1-checklist.md`
+- `docs/release/windows-release-checklist.md`
 - `docs/development/data-backup.md`
 - `docs/development/manual-smoke-scenarios.md`
 
@@ -885,7 +885,7 @@ This archived log records V1 implementation actions, planning decisions, verific
 
 **Documentation updated**
 
-- `docs/release/windows-v1-checklist.md` now includes log checks.
+- `docs/release/windows-release-checklist.md` now includes log checks.
 - `docs/development/data-backup.md` now documents `data/logs/desktop-api.log`, JSONL format, redaction, and sharing cautions.
 
 **Verification evidence**
@@ -952,7 +952,7 @@ This archived log records V1 implementation actions, planning decisions, verific
 **Documentation updated**
 
 - `docs/development/data-backup.md` now documents real storage at `data/sqlite/app.db`, `DATABASE_PATH`, and isolated smoke databases.
-- `docs/release/windows-v1-checklist.md` now asks the tester to confirm `data/sqlite/app.db` creation and backup/restore steps.
+- `docs/release/windows-release-checklist.md` now asks the tester to confirm `data/sqlite/app.db` creation and backup/restore steps.
 
 **Verification evidence**
 
@@ -1065,7 +1065,7 @@ This archived log records V1 implementation actions, planning decisions, verific
 **Documentation updated**
 
 - `docs/development/manual-smoke-scenarios.md`: added manual checks for active green status and readable upstream AI errors.
-- `docs/release/windows-v1-checklist.md`: added V1 release checks for status action visibility and non-JSON AI failure messages.
+- `docs/release/windows-release-checklist.md`: added V1 release checks for status action visibility and non-JSON AI failure messages.
 - `docs/api/local-api.md`: documented frontend handling of structured API errors and `upstream_error` guidance.
 
 **Verification evidence**
@@ -1129,7 +1129,7 @@ This archived log records V1 implementation actions, planning decisions, verific
 **Documentation updated**
 
 - `docs/development/manual-smoke-scenarios.md`: summary should appear in the editable field, Russian output is expected, and rate limits should show retry/model guidance.
-- `docs/release/windows-v1-checklist.md`: AI smoke pass now checks Russian editable summaries and rate-limit messaging.
+- `docs/release/windows-release-checklist.md`: AI smoke pass now checks Russian editable summaries and rate-limit messaging.
 - `docs/api/local-api.md`: documented Russian summaries, tolerant tag suggestion parsing, and specific upstream guidance handling.
 - `docs/product/user-stories.md`: summary user stories now reflect Russian generation and immediate editability.
 
@@ -1204,7 +1204,7 @@ This archived log records V1 implementation actions, planning decisions, verific
 - Captured the V1-FIX-003 design in `dev_management/v1_feedback_fixes.md` to keep V1 planning in the existing project management style.
 - Updated `docs/product/user-stories.md` with global tag creation, item-scoped assignment, substring search, and item-scoped removal stories.
 - Updated `docs/development/manual-smoke-scenarios.md` with manual tag lifecycle checks.
-- Updated `docs/release/windows-v1-checklist.md` with a manual tag smoke pass.
+- Updated `docs/release/windows-release-checklist.md` with a manual tag smoke pass.
 - Updated `dev_management/v1_feedback_fixes.md`: `V1-FIX-003` moved from `deferred` to `planned`.
 
 **Implementation plan outline**
@@ -1288,6 +1288,7 @@ This archived log records V1 implementation actions, planning decisions, verific
 
 - V1 is finalized for the current accepted local-first scope.
 - V2 planning should start from `dev_management/v1_retrospective.md` and the Post-V1 / V2 backlog candidates in `dev_management/iteration_plan.md`.
+
 
 
 

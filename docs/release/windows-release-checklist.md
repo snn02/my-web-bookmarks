@@ -1,4 +1,4 @@
-# Windows V1 Release Checklist
+﻿# Windows Release Checklist
 
 Use this checklist before treating the local V1 app as ready for regular use.
 
@@ -139,3 +139,4 @@ npm run launcher:status
   - `launcher: stopped`
   - `api: stopped`
   - `web: stopped`
+

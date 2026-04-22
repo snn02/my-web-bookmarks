@@ -1,4 +1,4 @@
-# My Web Bookmarks Development Plan
+﻿# My Web Bookmarks Development Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` for parallelizable implementation tasks or `superpowers:executing-plans` for inline execution. Keep checkbox statuses current after each iteration.
 
@@ -782,7 +782,7 @@ These gates were added after the Iteration 4 post-QA sync issue.
 
 - 2026-04-21: Added `npm run smoke`, which starts the backend in-process through `tsx`, checks real HTTP endpoints, and verifies a sync lifecycle failure reaches a visible final state.
 - 2026-04-21: Added `npm run test:smoke` and included smoke helper tests in root `npm test`.
-- 2026-04-21: Added Windows V1 release checklist at `docs/release/windows-v1-checklist.md`.
+- 2026-04-21: Added Windows V1 release checklist at `docs/release/windows-release-checklist.md`.
 - 2026-04-21: Added data backup and recovery guidance at `docs/development/data-backup.md`.
 - 2026-04-21: Added manual lifecycle smoke scenarios at `docs/development/manual-smoke-scenarios.md`.
 - 2026-04-21: Packaging decision for V1: keep local dev commands and checklist; Electron/Tauri packaging is deferred.
@@ -841,7 +841,7 @@ These gates were added after the Iteration 4 post-QA sync issue.
 - Manual follow-up: run the Windows checklist with a real Chrome profile and optional real OpenRouter key before daily use.
 - Suggested QA checks:
   - Run `npm run smoke` and confirm the report shows all checks as `ok`.
-  - Execute `docs/release/windows-v1-checklist.md` on Windows.
+  - Execute `docs/release/windows-release-checklist.md` on Windows.
   - Confirm manual smoke scenarios include visible final states for sync and AI workflows.
   - Confirm backup guidance is clear about current in-memory development data and future persistent SQLite backup expectations.
   - Confirm `data/logs/desktop-api.log` is created by `npm run smoke` and contains sync lifecycle events.
@@ -928,3 +928,4 @@ These items are not open V1 questions. They are candidates for V2 planning:
 | --- | --- |
 | 2026-04-21 | Initial development management plan created from existing project documentation. |
 | 2026-04-22 | V1 finalized after accepted iterations and accepted V1 feedback fixes. |
+

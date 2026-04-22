@@ -1,4 +1,4 @@
-# My Web Bookmarks V2 Plan
+﻿# My Web Bookmarks V2 Plan
 
 ## V2 Charter
 
@@ -183,7 +183,7 @@ Deliver an operationally reliable local launch flow for Windows with one-click s
 - Documentation updates only by ownership:
   - Product behavior: `docs/product/user-stories.md` (if changed).
   - API contract: `docs/api/local-api.md` (if changed).
-  - Manual QA/release: `docs/development/manual-smoke-scenarios.md`, `docs/release/windows-v1-checklist.md` (or V2 checklist if introduced).
+  - Manual QA/release: `docs/development/manual-smoke-scenarios.md`, `docs/release/windows-release-checklist.md` (or V2 checklist if introduced).
   - Process/lessons: `dev_management/action_log_v2.md`.
 
 **Automated verification**
@@ -211,7 +211,7 @@ Deliver an operationally reliable local launch flow for Windows with one-click s
 
 - Manual QA/release:
   - `docs/development/manual-smoke-scenarios.md`
-  - `docs/release/windows-v1-checklist.md`
+  - `docs/release/windows-release-checklist.md`
 - Process/lessons:
   - `dev_management/action_log_v2.md`
 - V2 control/acceptance:
@@ -224,3 +224,4 @@ Deliver an operationally reliable local launch flow for Windows with one-click s
 - Browser E2E smoke includes happy and controlled failure paths.
 - No workflow remains in indefinite running/loading without a final state.
 - Required checks pass and docs are updated once in correct ownership boundaries.
+

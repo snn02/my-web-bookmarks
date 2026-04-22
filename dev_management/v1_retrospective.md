@@ -1,4 +1,4 @@
-# V1 Retrospective And V2 Working Improvements
+﻿# V1 Retrospective And V2 Working Improvements
 
 ## V1 Outcome
 
@@ -87,7 +87,7 @@ Use fewer documents with clearer ownership:
 - `docs/product/user-stories.md`: user-facing behavior only.
 - `docs/api/local-api.md`: HTTP contract only.
 - `docs/development/manual-smoke-scenarios.md`: manual QA flows.
-- `docs/release/windows-v1-checklist.md` or a V2 equivalent: release readiness checklist.
+- `docs/release/windows-release-checklist.md` or a V2 equivalent: release readiness checklist.
 
 Avoid duplicating the same detailed design in multiple places. Link from one control document to the relevant product/API/QA docs instead.
 
@@ -185,3 +185,4 @@ These are candidates, not committed scope:
 V1 succeeded because the team kept narrowing scope, tested behavior before implementation, and used manual QA feedback quickly. The main cost came from documentation spread and from not always specifying user-visible outcomes before coding.
 
 For V2, the lead discipline should be: one canonical plan, one active versioned action log, explicit workflow outcomes, short feedback batches, and provider diagnostics that turn external uncertainty into evidence.
+
