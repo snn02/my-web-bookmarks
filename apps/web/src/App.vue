@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { API_BASE_PATH, type HealthResponse } from '@my-web-bookmarks/shared';
+import Button from 'primevue/button';
+import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import {
   attachTagToItem,
@@ -454,22 +457,22 @@ function showNotice(type: NoticeType, message: string): void {
       </div>
       <div class="topbar-right">
         <nav class="view-switch" aria-label="App sections">
-          <button
+          <Button
             aria-label="Open inbox view"
             type="button"
             :class="{ 'status-active': currentView === 'inbox' }"
             @click="navigateTo('inbox')"
           >
             Inbox
-          </button>
-          <button
+          </Button>
+          <Button
             aria-label="Open settings view"
             type="button"
             :class="{ 'status-active': currentView === 'settings' }"
             @click="navigateTo('settings')"
           >
             Settings
-          </button>
+          </Button>
         </nav>
         <p class="status-line">Backend: {{ backendState }}</p>
       </div>
@@ -481,7 +484,11 @@ function showNotice(type: NoticeType, message: string): void {
     <p v-if="aiErrorMessage" class="error">{{ aiErrorMessage }}</p>
 
     <section v-if="currentView === 'inbox'" class="toolbar" aria-label="Inbox controls">
-      <input v-model="searchQuery" aria-label="Search bookmarks" placeholder="Search title, URL, domain, summary" />
+      <InputText
+        v-model="searchQuery"
+        aria-label="Search bookmarks"
+        placeholder="Search title, URL, domain, summary"
+      />
       <select v-model="statusFilter" aria-label="Status filter">
         <option value="">All statuses</option>
         <option value="new">New</option>
@@ -498,13 +505,13 @@ function showNotice(type: NoticeType, message: string): void {
         <option value="updatedAt:desc">Recently updated</option>
         <option value="updatedAt:asc">Least recently updated</option>
       </select>
-      <button aria-label="Apply filters" type="button" @click="applyFilters">Apply</button>
+      <Button aria-label="Apply filters" type="button" @click="applyFilters">Apply</Button>
     </section>
 
     <section v-if="currentView === 'inbox'" class="sync-band" aria-label="Sync controls">
-      <button aria-label="Sync bookmarks" type="button" :disabled="syncInProgress" @click="syncBookmarks">
+      <Button aria-label="Sync bookmarks" type="button" :disabled="syncInProgress" @click="syncBookmarks">
         {{ syncInProgress ? 'Syncing...' : 'Sync' }}
-      </button>
+      </Button>
       <span class="sync-phase" :class="`phase-${syncPhase}`">Lifecycle: {{ syncPhase }}</span>
       <span v-if="syncStatus" class="sync-status">
         Sync: {{ syncStatus.status }} | +{{ syncStatus.importedCount }} / ~{{ syncStatus.updatedCount }} / skipped {{ syncStatus.skippedCount }}
@@ -515,8 +522,8 @@ function showNotice(type: NoticeType, message: string): void {
     <section v-if="currentView === 'inbox'" class="summary-row" aria-label="Inbox summary">
       <strong>{{ total }}</strong>
       <span>items</span>
-      <input v-model="newTagName" aria-label="New tag name" placeholder="New tag" />
-      <button aria-label="Create tag" type="button" @click="createGlobalTag">Create tag</button>
+      <InputText v-model="newTagName" aria-label="New tag name" placeholder="New tag" />
+      <Button aria-label="Create tag" type="button" @click="createGlobalTag">Create tag</Button>
     </section>
 
     <section v-if="currentView === 'inbox' && !loading && items.length === 0" class="empty">
@@ -548,37 +555,39 @@ function showNotice(type: NoticeType, message: string): void {
           <a :href="item.url" target="_blank" rel="noreferrer">Open original</a>
 
           <div class="actions">
-            <button
+            <Button
               :aria-label="`Mark ${item.title} as new`"
               :class="{ 'status-active': item.status === 'new' }"
               type="button"
               @click="setStatus(item, 'new')"
             >
               New
-            </button>
-            <button
+            </Button>
+            <Button
               :aria-label="`Mark ${item.title} as read`"
               :class="{ 'status-active': item.status === 'read' }"
               type="button"
               @click="setStatus(item, 'read')"
             >
               Read
-            </button>
-            <button
+            </Button>
+            <Button
               :aria-label="`Archive ${item.title}`"
               :class="{ 'status-active': item.status === 'archived' }"
               type="button"
               @click="setStatus(item, 'archived')"
             >
               Archive
-            </button>
+            </Button>
           </div>
 
           <div class="summary-editor">
-            <textarea v-model="summaryDrafts[item.id]" :aria-label="`Summary for ${item.title}`" rows="4" />
+            <Textarea v-model="summaryDrafts[item.id]" :aria-label="`Summary for ${item.title}`" rows="4" />
             <div class="actions">
-              <button :aria-label="`Save summary for ${item.title}`" type="button" @click="saveSummary(item)">Save summary</button>
-              <button
+              <Button :aria-label="`Save summary for ${item.title}`" type="button" @click="saveSummary(item)"
+                >Save summary</Button
+              >
+              <Button
                 :aria-label="`Generate summary for ${item.title}`"
                 type="button"
                 :disabled="aiBusyItemId === item.id"
@@ -591,18 +600,18 @@ function showNotice(type: NoticeType, message: string): void {
                       ? 'Regenerate summary'
                       : 'Generate summary'
                 }}
-              </button>
-              <button
+              </Button>
+              <Button
                 :aria-label="`Suggest tags for ${item.title}`"
                 type="button"
                 :disabled="aiBusyItemId === item.id"
                 @click="loadTagSuggestions(item)"
               >
                 {{ itemOperationPhase(item.id, 'suggestTags') === 'running' ? 'Suggesting...' : 'Suggest tags' }}
-              </button>
+              </Button>
             </div>
             <div v-if="tagSuggestionsByItemId[item.id]?.length" class="suggestions">
-              <button
+              <Button
                 v-for="suggestion in tagSuggestionsByItemId[item.id]"
                 :key="suggestion.name"
                 :aria-label="`Apply suggested tag ${suggestion.name} to ${item.title}`"
@@ -610,7 +619,7 @@ function showNotice(type: NoticeType, message: string): void {
                 @click="applySuggestedTag(item, suggestion)"
               >
                 {{ suggestion.name }}
-              </button>
+              </Button>
             </div>
             <div class="tag-editor" :aria-label="`Tags for ${item.title}`">
               <div class="tags">
@@ -619,13 +628,13 @@ function showNotice(type: NoticeType, message: string): void {
                   <button :aria-label="`Remove ${tag.name} from ${item.title}`" type="button" @click="detachTag(item, tag.id)">x</button>
                 </span>
               </div>
-              <input
+              <InputText
                 v-model="tagSearchByItemId[item.id]"
                 :aria-label="`Find tag for ${item.title}`"
                 placeholder="Find existing tag"
               />
               <div v-if="matchingTagsForItem(item).length" class="tag-suggestions">
-                <button
+                <Button
                   v-for="tag in matchingTagsForItem(item)"
                   :key="tag.id"
                   :aria-label="`Apply existing tag ${tag.name} to ${item.title}`"
@@ -633,7 +642,7 @@ function showNotice(type: NoticeType, message: string): void {
                   @click="attachExistingTag(item, tag)"
                 >
                   {{ tag.name }}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -643,19 +652,23 @@ function showNotice(type: NoticeType, message: string): void {
 
     <section v-if="currentView === 'settings'" class="settings-view" aria-label="Application settings">
       <section class="settings-band" aria-label="Sync settings">
-        <input v-model="chromeProfilePath" aria-label="Chrome profile path" placeholder="Chrome profile path" />
-        <button aria-label="Save Chrome profile path" type="button" @click="saveProfilePath">Save path</button>
+        <InputText
+          v-model="chromeProfilePath"
+          aria-label="Chrome profile path"
+          placeholder="Chrome profile path"
+        />
+        <Button aria-label="Save Chrome profile path" type="button" @click="saveProfilePath">Save path</Button>
       </section>
 
       <section class="settings-band" aria-label="AI settings">
-        <input
+        <InputText
           v-model="openRouterApiKey"
           aria-label="OpenRouter API key"
           placeholder="OpenRouter API key"
           type="password"
         />
-        <input v-model="openRouterModel" aria-label="OpenRouter model" placeholder="OpenRouter model" />
-        <button aria-label="Save OpenRouter settings" type="button" @click="saveAiSettings">Save AI</button>
+        <InputText v-model="openRouterModel" aria-label="OpenRouter model" placeholder="OpenRouter model" />
+        <Button aria-label="Save OpenRouter settings" type="button" @click="saveAiSettings">Save AI</Button>
         <span class="sync-status">OpenRouter: {{ openRouterConfigured ? 'configured' : 'not configured' }}</span>
       </section>
     </section>
@@ -664,52 +677,34 @@ function showNotice(type: NoticeType, message: string): void {
 
 <style scoped>
 .app-shell {
-  --bg-canvas: #060b14;
-  --bg-grid: rgba(117, 167, 255, 0.08);
-  --bg-panel: linear-gradient(145deg, #121c2f 0%, #0e1728 100%);
-  --bg-panel-soft: #10192b;
-  --bg-elevated: #17243a;
-  --text-strong: #eaf2ff;
-  --text-main: #ccdaee;
-  --text-muted: #8fa3c2;
-  --line-main: #28374f;
-  --line-strong: #3a5272;
-  --brand-main: #54a8ff;
-  --brand-strong: #2d8bff;
-  --brand-ink: #031328;
-  --ok-bg: #123323;
-  --ok-text: #8ae9b4;
-  --warn-bg: #3a2d14;
-  --warn-text: #ffd799;
-  --danger-bg: #3a1720;
-  --danger-text: #ffc0cc;
+  --bg-canvas: #f8fafc;
+  --bg-panel: #ffffff;
+  --bg-subtle: #f8fafc;
+  --text-strong: #0f172a;
+  --text-main: #334155;
+  --text-muted: #64748b;
+  --line-main: #e2e8f0;
+  --line-strong: #cbd5e1;
+  --brand-main: #3b82f6;
+  --brand-soft: #eff6ff;
+  --ok-bg: #f0fdf4;
+  --ok-text: #166534;
+  --warn-bg: #fffbeb;
+  --warn-text: #92400e;
+  --danger-bg: #fff1f2;
+  --danger-text: #9f1239;
   background:
-    radial-gradient(circle at 5% 0%, rgba(84, 168, 255, 0.16) 0%, rgba(84, 168, 255, 0) 35%),
-    radial-gradient(circle at 90% 10%, rgba(43, 122, 255, 0.14) 0%, rgba(43, 122, 255, 0) 34%),
-    repeating-linear-gradient(
-      0deg,
-      transparent 0,
-      transparent 39px,
-      var(--bg-grid) 39px,
-      var(--bg-grid) 40px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent 0,
-      transparent 39px,
-      var(--bg-grid) 39px,
-      var(--bg-grid) 40px
-    ),
-    var(--bg-canvas);
+    radial-gradient(circle at 0 0, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0) 30%),
+    linear-gradient(#ffffff, #f8fafc);
   color: var(--text-main);
   font-family:
-    "Space Grotesk",
+    "Manrope",
     "Segoe UI Variable",
     ui-sans-serif,
     system-ui,
     sans-serif;
   min-height: 100vh;
-  padding: 28px;
+  padding: 20px;
 }
 
 .topbar,
@@ -718,14 +713,12 @@ function showNotice(type: NoticeType, message: string): void {
 .settings-band,
 .summary-row {
   align-items: center;
-  background: var(--bg-panel);
+  background: #ffffff;
   border: 1px solid var(--line-main);
-  border-radius: 14px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 12px 36px rgba(2, 10, 23, 0.45);
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
   display: flex;
-  gap: 14px;
+  gap: 12px;
   justify-content: space-between;
   margin: 0 auto 14px;
   max-width: 1180px;
@@ -767,73 +760,73 @@ h2 {
 }
 
 h1 {
-  font-size: clamp(1.7rem, 2.4vw, 2.3rem);
+  font-size: clamp(1.6rem, 2.2vw, 2.1rem);
   letter-spacing: 0.01em;
 }
 
 h2 {
-  font-size: 1.18rem;
+  font-size: 1.08rem;
 }
 
-input,
-select,
-textarea,
-button {
+.toolbar select,
+.settings-band select {
+  appearance: none;
+  background: #ffffff;
   border: 1px solid var(--line-main);
   border-radius: 10px;
-  font: inherit;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.15s ease,
-    background-color 0.15s ease;
-}
-
-input,
-select,
-textarea {
-  background: var(--bg-panel-soft);
   color: var(--text-main);
-  padding: 10px 11px;
+  font: inherit;
+  min-height: 40px;
+  padding: 8px 10px;
 }
 
-input::placeholder,
-textarea::placeholder {
-  color: #7f93b3;
+:deep(.p-button) {
+  background: var(--brand-main);
+  border: 1px solid var(--brand-main);
+  border-radius: 10px;
+  box-shadow: none;
+  color: #ffffff;
+  font-weight: 600;
+  min-height: 40px;
+  padding: 0.55rem 0.9rem;
 }
 
-input:focus,
-select:focus,
-textarea:focus {
+:deep(.p-button:hover) {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+:deep(.p-inputtext),
+:deep(.p-textarea) {
+  background: #ffffff;
+  border: 1px solid var(--line-main);
+  border-radius: 10px;
+  box-shadow: none;
+  color: var(--text-main);
+  min-height: 40px;
+  padding: 0.55rem 0.75rem;
+}
+
+:deep(.p-inputtext:enabled:focus),
+:deep(.p-textarea:enabled:focus) {
   border-color: var(--brand-main);
-  box-shadow: 0 0 0 3px rgba(84, 168, 255, 0.2);
-  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.14);
 }
 
-button {
-  background: linear-gradient(160deg, var(--brand-main) 0%, var(--brand-strong) 100%);
-  color: var(--brand-ink);
-  cursor: pointer;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  padding: 9px 13px;
-}
-
-button:hover {
-  transform: translateY(-1px);
-}
-
-button:active {
-  transform: translateY(0);
-}
-
-button:disabled {
-  cursor: wait;
-  opacity: 0.5;
+.status-active :deep(.p-button),
+:deep(.p-button.status-active) {
+  background: var(--brand-soft);
+  border-color: #bfdbfe;
+  color: #1d4ed8;
 }
 
 .toolbar input,
 .settings-band input {
+  min-width: min(360px, 100%);
+}
+
+.toolbar :deep(.p-inputtext),
+.settings-band :deep(.p-inputtext) {
   min-width: min(360px, 100%);
 }
 
@@ -860,8 +853,8 @@ button:disabled {
 }
 
 .phase-idle {
-  background: #1d2a40;
-  color: #9fb4d1;
+  background: #f1f5f9;
+  color: #334155;
 }
 
 .phase-running {
@@ -880,21 +873,15 @@ button:disabled {
 }
 
 .status-current {
-  color: #7dd7a4;
+  color: #15803d;
   font-weight: 700;
 }
 
-.status-active {
-  background: linear-gradient(160deg, #73deab 0%, #4ab780 100%);
-  border-color: #70d7a4;
-  color: #042013;
-}
-
 .error {
-  background: rgba(63, 22, 32, 0.7);
-  border: 1px solid #7b3345;
+  background: var(--danger-bg);
+  border: 1px solid #fda4af;
   border-radius: 10px;
-  color: #ffb8c5;
+  color: var(--danger-text);
   margin: 0 auto 16px;
   max-width: 1180px;
   padding: 10px 12px;
@@ -909,15 +896,15 @@ button:disabled {
 }
 
 .notice-success {
-  background: rgba(18, 51, 35, 0.78);
-  border-color: #2e8758;
-  color: #9bf2c2;
+  background: var(--ok-bg);
+  border-color: #86efac;
+  color: var(--ok-text);
 }
 
 .notice-error {
-  background: rgba(58, 23, 32, 0.82);
-  border-color: #8a3c4e;
-  color: #ffc3cf;
+  background: var(--danger-bg);
+  border-color: #fda4af;
+  color: var(--danger-text);
 }
 
 .sync-error {
@@ -925,7 +912,7 @@ button:disabled {
 }
 
 .empty {
-  background: var(--bg-panel);
+  background: #ffffff;
   border: 1px dashed var(--line-strong);
   border-radius: 14px;
   margin: 32px auto;
@@ -945,9 +932,7 @@ button:disabled {
   background: var(--bg-panel);
   border: 1px solid var(--line-main);
   border-radius: 12px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 12px 28px rgba(3, 11, 25, 0.4);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
   overflow: hidden;
 }
 
@@ -963,6 +948,10 @@ button:disabled {
   padding: 14px 16px;
   text-align: left;
   width: 100%;
+}
+
+.item-row:hover {
+  background: #f8fafc;
 }
 
 .item-main {
@@ -993,9 +982,9 @@ button:disabled {
 }
 
 .status-chip {
-  background: #1b2b45;
+  background: #eff6ff;
   border-radius: 999px;
-  color: #94bfff;
+  color: #1d4ed8;
   font-size: 0.8rem;
   font-weight: 700;
   padding: 3px 8px;
@@ -1003,7 +992,7 @@ button:disabled {
 }
 
 .expand-indicator {
-  color: #8fb6e8;
+  color: #2563eb;
   font-weight: 600;
 }
 
@@ -1015,11 +1004,11 @@ button:disabled {
 }
 
 .item-details a {
-  color: #8bc2ff;
+  color: #2563eb;
 }
 
 .item-details a:hover {
-  color: #b8daff;
+  color: #1d4ed8;
 }
 
 .actions,
@@ -1031,17 +1020,18 @@ button:disabled {
 }
 
 .tags span {
-  background: #1b2d46;
-  border: 1px solid #29466f;
+  background: #f8fafc;
+  border: 1px solid var(--line-main);
   border-radius: 999px;
-  color: #b8d3f5;
+  color: var(--text-main);
   padding: 4px 8px;
 }
 
 .tags button {
   background: transparent;
   border: 0;
-  color: #b8d3f5;
+  color: #475569;
+  cursor: pointer;
   padding: 0 0 0 6px;
 }
 
@@ -1064,7 +1054,7 @@ button:disabled {
 }
 
 .tag-editor {
-  background: #0d1626;
+  background: var(--bg-subtle);
   border: 1px solid var(--line-main);
   border-radius: 10px;
   margin-top: 12px;

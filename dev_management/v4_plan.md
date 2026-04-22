@@ -42,9 +42,11 @@ Active (started on 2026-04-23).
 - `npm test`
 - `npm run smoke`
 
-**Execution Note**
+**Execution Notes**
 
-- 2026-04-23: visual-only Command Center styling pass implemented in `apps/web/src/App.vue`; verification suite passed.
+- 2026-04-23: initial visual-only Command Center styling pass implemented and verified.
+- 2026-04-23: direction changed after review feedback to a light, minimal style using PrimeVue components as visual layer (API and business logic unchanged).
+- 2026-04-23: PrimeVue integration implemented (`Button`, `InputText`, `Textarea`) with forced light preset and minimal styling pass; verification suite passed.
 
 ## Execution Order
 

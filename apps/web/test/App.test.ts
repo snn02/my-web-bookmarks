@@ -1,4 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils';
+import Aura from '@primeuix/themes/aura';
+import PrimeVue from 'primevue/config';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App.vue';
 
@@ -113,6 +115,26 @@ async function openView(wrapper: any, view: 'inbox' | 'settings'): Promise<void>
   await flushPromises();
 }
 
+function mountApp() {
+  return mount(App, {
+    global: {
+      plugins: [
+        [
+          PrimeVue,
+          {
+            theme: {
+              preset: Aura,
+              options: {
+                darkModeSelector: false
+              }
+            }
+          }
+        ]
+      ]
+    }
+  });
+}
+
 describe('App', () => {
   beforeEach(() => {
     vi.unstubAllGlobals();
@@ -126,7 +148,7 @@ describe('App', () => {
     }
     vi.stubGlobal('fetch', fetchMock);
 
-    const wrapper = mount(App);
+    const wrapper = mountApp();
     await vi.waitFor(() => expect(wrapper.text()).toContain('Backend: available'));
 
     expect(fetch).toHaveBeenCalledWith('/api/v1/health');
@@ -147,7 +169,7 @@ describe('App', () => {
     }
     vi.stubGlobal('fetch', fetchMock);
 
-    const wrapper = mount(App);
+    const wrapper = mountApp();
     await vi.waitFor(() => expect(wrapper.text()).toContain('Backend: available'));
 
     expect(wrapper.find('[aria-label="Chrome profile path"]').exists()).toBe(false);
@@ -162,7 +184,7 @@ describe('App', () => {
   it('shows backend unavailable state when health check fails', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
 
-    const wrapper = mount(App);
+    const wrapper = mountApp();
     await vi.waitFor(() => expect(wrapper.text()).toContain('Backend: unavailable'));
   });
 
@@ -218,7 +240,7 @@ describe('App', () => {
       .mockResolvedValueOnce(syncedItemList());
     vi.stubGlobal('fetch', fetchMock);
 
-    const wrapper = mount(App);
+    const wrapper = mountApp();
     await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
 
     await wrapper.get('[aria-label="Search bookmarks"]').setValue('vue');
@@ -266,7 +288,7 @@ describe('App', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
 
-    const wrapper = mount(App);
+    const wrapper = mountApp();
     await vi.waitFor(() => expect(wrapper.text()).toContain('Second Bookmark'));
 
     await expandItem(wrapper, 'Second Bookmark');
@@ -316,7 +338,7 @@ describe('App', () => {
       );
     vi.stubGlobal('fetch', fetchMock);
 
-    const wrapper = mount(App);
+    const wrapper = mountApp();
     await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
 
     await wrapper.get('[aria-label="Sync bookmarks"]').trigger('click');
@@ -364,7 +386,7 @@ describe('App', () => {
       .mockResolvedValueOnce(syncedItemList());
     vi.stubGlobal('fetch', fetchMock);
 
-    const wrapper = mount(App);
+    const wrapper = mountApp();
     await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
     expect(wrapper.text()).toContain('Lifecycle: idle');
 
@@ -419,7 +441,7 @@ describe('App', () => {
       );
     vi.stubGlobal('fetch', fetchMock);
 
-    const wrapper = mount(App);
+    const wrapper = mountApp();
     await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
 
     await expandItem(wrapper, 'Vue Guide');
@@ -468,7 +490,7 @@ describe('App', () => {
       .mockResolvedValueOnce(fail('OpenRouter request failed.'));
     vi.stubGlobal('fetch', fetchMock);
 
-    const wrapper = mount(App);
+    const wrapper = mountApp();
     await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
 
     await expandItem(wrapper, 'Vue Guide');
@@ -506,7 +528,7 @@ describe('App', () => {
       );
     vi.stubGlobal('fetch', fetchMock);
 
-    const wrapper = mount(App);
+    const wrapper = mountApp();
     await openView(wrapper, 'settings');
     await vi.waitFor(() => expect(wrapper.text()).toContain('OpenRouter: configured'));
 
@@ -562,7 +584,7 @@ describe('App', () => {
       );
     vi.stubGlobal('fetch', fetchMock);
 
-    const wrapper = mount(App);
+    const wrapper = mountApp();
     await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
 
     await expandItem(wrapper, 'Vue Guide');

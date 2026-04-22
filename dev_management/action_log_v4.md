@@ -91,3 +91,49 @@ This log is the active implementation journal for V4.
 **Next**
 
 - Collect visual review feedback in issue `#4`, then mark slice as accepted/closed.
+
+## 2026-04-23 - V4-I1 Direction Updated To PrimeVue Light Minimal
+
+**Change**
+
+- Received review feedback that the previous style is too heavy.
+- Updated implementation direction for `#4` to:
+  - light theme;
+  - minimal visual details;
+  - PrimeVue as UI visual component layer.
+
+**Why**
+
+- Align delivered look and feel with requested aesthetic while preserving stable UX and existing logic.
+
+**Next**
+
+- Integrate PrimeVue in `apps/web` and refactor key controls to PrimeVue components.
+- Re-run verification and post evidence in issue `#4`.
+
+## 2026-04-23 - V4-I1 PrimeVue Light Minimal Pass Completed
+
+**Change**
+
+- Added PrimeVue to `apps/web` and configured light theme preset in app bootstrap.
+- Refactored primary controls to PrimeVue components (`Button`, `InputText`, `Textarea`) while preserving existing behavior.
+- Replaced heavy dark styling with light, low-detail visual system (minimal shadows, neutral surfaces, restrained accent).
+- Updated web tests to mount app with PrimeVue plugin so component rendering and behavior assertions stay stable.
+
+**Verification Evidence**
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm test` passed.
+- `npm run smoke` passed.
+
+**Docs**
+
+- Product/API contract docs in `docs/` unchanged (no behavior or contract changes).
+- Tracking docs updated:
+  - `dev_management/v4_plan.md`
+  - `dev_management/action_log_v4.md`
+
+**Next**
+
+- Collect visual acceptance feedback in issue `#4`.
