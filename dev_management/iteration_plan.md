@@ -861,31 +861,70 @@ These gates were added after the Iteration 4 post-QA sync issue.
   - Packaging decision remains conservative for V1: local commands plus checklist; Electron/Tauri deferred.
   - Residual technical risk: Node `node:sqlite` is still experimental and emits warnings during tests.
 
-## Cross-Cutting Backlog
+## V1 Finalization
 
-These items should be pulled into iterations only when they become necessary for the V1 outcome.
+**Status:** accepted
 
-- [ ] Decide package manager and lockfile policy.
-- [ ] Decide backend HTTP framework.
-- [ ] Decide SQLite driver and migration tool.
-- [ ] Decide frontend test runner and browser automation stack.
-- [ ] Decide whether to add Electron/Tauri packaging after V1 or before first user trial.
-- [ ] Define fixture strategy for Chrome bookmark files.
-- [ ] Define sanitized sample data for demos and tests.
-- [ ] Define AI prompt templates and cost guardrails.
+V1 implementation, QA review, team review, and V1 feedback fixes are complete for the current local-first scope.
+
+Accepted V1 feedback fixes are tracked in `dev_management/v1_feedback_fixes.md`.
+
+**Final Verification Evidence**
+
+- Iteration 0 through Iteration 6 are accepted.
+- `V1-FIX-001` through `V1-FIX-007` are accepted.
+- Latest full verification for V1 feedback fixes passed on 2026-04-22:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm test`
+
+**Final Manual QA Evidence**
+
+- User confirmed status highlighting works.
+- User confirmed AI errors are readable and not raw JSON.
+- User confirmed Russian summaries appear directly in the editable textarea and can be saved.
+- User confirmed tag suggestions work or fail with readable messages.
+- User confirmed item-scoped manual tag assignment works as needed.
+
+## Cross-Cutting Decisions
+
+The original V1 cross-cutting backlog is closed as follows:
+
+- Package manager and lockfile policy: npm workspaces with root lockfile.
+- Backend HTTP framework: Express.
+- SQLite driver and migration tool: Node `node:sqlite` with code-owned SQL migrations and a `schema_migrations` table.
+- Frontend test runner: Vitest with Vue Test Utils; browser automation remains optional post-V1 work.
+- Packaging: Electron/Tauri deferred; V1 uses local development commands plus the Windows release checklist.
+- Chrome bookmark fixtures: committed parser fixtures under `apps/desktop-api/test/fixtures`.
+- Sanitized sample data: current automated tests use synthetic fixtures; richer demos are post-V1.
+- AI prompt templates and cost guardrails: V1 prompts are implemented and AI remains explicit/on-demand; deeper cost controls are post-V1.
+
+## Post-V1 / V2 Backlog Candidates
+
+These items are not open V1 questions. They are candidates for V2 planning:
+
+- Browser automation smoke tests for the real frontend.
+- Desktop packaging or launch scripts for non-developer use.
+- Richer sanitized demo dataset.
+- Full article extraction instead of metadata-only AI context.
+- Stronger AI model selection, fallback, and cost/limit guardrails.
+- Bulk tag assignment.
+- Tag rename UI if it becomes a user need.
+- Revisit `node:sqlite` experimental status before packaging.
 
 ## Risk Register
 
 | Risk | Impact | Mitigation | Status |
 | --- | --- | --- | --- |
-| Chrome bookmark file shape differs across versions or profiles | Sync may miss bookmarks | Use fixture coverage and real Windows profile testing | open |
-| OpenRouter costs or failures degrade UX | User may avoid AI features | Make AI optional, explicit, and failure-tolerant | open |
-| SQLite schema changes during early development | Rework and data loss risk | Add migrations from Iteration 1 and test them | open |
-| Frontend couples to backend internals | Future remote/local boundary becomes expensive | Shared DTOs and API-client-only frontend access | open |
-| Secrets leak into responses or logs | Security/privacy issue | Redaction tests and logging review | open |
+| Chrome bookmark file shape differs across versions or profiles | Sync may miss bookmarks | Fixture coverage exists; keep real-profile smoke in release checklist | managed |
+| OpenRouter costs, limits, or failures degrade UX | User may avoid AI features | AI is optional, explicit, failure-tolerant, and has direct diagnostic tooling | managed |
+| SQLite schema changes during early development | Rework and data loss risk | Migrations exist and are tested; backup docs cover local database | managed |
+| Frontend couples to backend internals | Future remote/local boundary becomes expensive | Frontend uses API client and HTTP JSON boundary only | managed |
+| Secrets leak into responses or logs | Security/privacy issue | Settings redaction, log redaction, and tests are in place | managed |
 
 ## Status History
 
 | Date | Change |
 | --- | --- |
 | 2026-04-21 | Initial development management plan created from existing project documentation. |
+| 2026-04-22 | V1 finalized after accepted iterations and accepted V1 feedback fixes. |

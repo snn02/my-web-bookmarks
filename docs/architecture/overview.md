@@ -27,8 +27,8 @@ The frontend uses a stable backend contract defined separately from the local im
 ### AI Processing
 
 1. User requests an AI action for an item.
-2. Backend extracts or reuses article text from the source URL.
-3. Backend sends content to OpenRouter.
+2. Backend builds V1 context from stored bookmark metadata: title, URL, domain, and current summary when present.
+3. Backend sends that context to OpenRouter.
 4. Backend stores the generated result in SQLite when needed.
 5. Frontend displays the result for review or use.
 

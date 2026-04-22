@@ -37,13 +37,30 @@ function createInitialResponses() {
             updatedAt: '2026-04-08T18:10:00Z',
             updatedBy: 'ai'
           }
+        },
+        {
+          id: 'itm_2',
+          url: 'https://example.com/second',
+          normalizedUrl: 'https://example.com/second',
+          title: 'Second Bookmark',
+          domain: 'example.com',
+          status: 'new',
+          importedAt: '2026-04-08T18:20:00Z',
+          updatedAt: '2026-04-08T18:20:00Z',
+          tags: [],
+          summary: null
         }
       ],
-      total: 1,
+      total: 2,
       limit: 50,
       offset: 0
     }),
-    ok({ tags: [{ id: 'tag_1', name: 'frontend' }] }),
+    ok({
+      tags: [
+        { id: 'tag_1', name: 'frontend' },
+        { id: 'tag_3', name: 'reading-list' }
+      ]
+    }),
     ok({
       openRouter: { apiKeyConfigured: false, model: null },
       chromeProfilePath: 'C:\\Chrome\\Default'
@@ -113,7 +130,7 @@ describe('App', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('Backend: unavailable'));
   });
 
-  it('filters, updates status, manages tags, saves settings, and starts sync', async () => {
+  it('filters, updates status, creates global tags, saves settings, and starts sync', async () => {
     const fetchMock = vi.fn();
     for (const response of createInitialResponses()) {
       fetchMock.mockResolvedValueOnce(response);
@@ -139,7 +156,6 @@ describe('App', () => {
         })
       )
       .mockResolvedValueOnce(ok({ id: 'tag_2', name: 'reading' }))
-      .mockResolvedValueOnce(ok({ id: 'itm_1', tags: [{ id: 'tag_2', name: 'reading' }] }))
       .mockResolvedValueOnce(ok({ chromeProfilePath: 'C:\\Chrome\\Profile' }))
       .mockResolvedValueOnce(
         ok({
@@ -188,11 +204,43 @@ describe('App', () => {
 
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/items/itm_1', expect.objectContaining({ method: 'PATCH' }));
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/tags', expect.objectContaining({ method: 'POST' }));
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/items/itm_1/tags', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/v1/items/itm_1/tags', expect.objectContaining({ method: 'POST' }));
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/settings', expect.objectContaining({ method: 'PATCH' }));
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/sync/bookmarks', expect.objectContaining({ method: 'POST' }));
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/sync/status');
     expect(wrapper.text()).toContain('Sync: succeeded | +1 / ~0 / skipped 0');
+  });
+
+  it('attaches existing tags only through the selected item card tag input', async () => {
+    const fetchMock = vi.fn();
+    for (const response of createInitialResponses()) {
+      fetchMock.mockResolvedValueOnce(response);
+    }
+    fetchMock.mockResolvedValueOnce(
+      ok({
+        id: 'itm_2',
+        tags: [{ id: 'tag_3', name: 'reading-list' }]
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const wrapper = mount(App);
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Second Bookmark'));
+
+    await wrapper.get('[aria-label="Find tag for Second Bookmark"]').setValue('read');
+    await vi.waitFor(() => expect(wrapper.text()).toContain('reading-list'));
+    expect(wrapper.find('[aria-label="Apply existing tag frontend to Second Bookmark"]').exists()).toBe(false);
+
+    await wrapper.get('[aria-label="Apply existing tag reading-list to Second Bookmark"]').trigger('click');
+    await flushPromises();
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/items/itm_2/tags', {
+      body: JSON.stringify({ tagId: 'tag_3' }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST'
+    });
+    expect((wrapper.get('[aria-label="Find tag for Second Bookmark"]').element as HTMLInputElement).value).toBe('');
+    await vi.waitFor(() => expect(wrapper.text()).toContain('reading-list x'));
   });
 
   it('shows sync errors returned after a sync attempt', async () => {

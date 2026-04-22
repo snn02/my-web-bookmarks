@@ -19,7 +19,7 @@ The app is local-first. Chrome remains the source for imported bookmark input, w
 ## What Needs Backup
 
 - `data/sqlite/app.db`.
-- Any future `data/logs` directory only when logs are needed for debugging.
+- `data/logs` only when logs are needed for debugging or incident review.
 - Do not include OpenRouter API keys in shared bug reports or screenshots.
 
 ## Logs

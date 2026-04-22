@@ -1187,3 +1187,104 @@ This log records implementation actions, planning decisions, verification eviden
 
 - Accepted: V1-FIX-001, V1-FIX-002, V1-FIX-004, V1-FIX-005, V1-FIX-006, V1-FIX-007.
 - Deferred: V1-FIX-003 remains open for a separate item-level tag assignment UI discussion.
+
+## 2026-04-22 - V1-FIX-003 tag UX design planned
+
+**User decision**
+
+- Add item-scoped tag editing inside each bookmark card, below the summary editor and action buttons.
+- Show current item tags inside that item tag input area as blocks with tag name and `x`.
+- While typing in the item tag input, show suggestions from existing database tags filtered by substring.
+- Clicking a suggestion attaches that existing tag only to the current item.
+- The top `New tag` field remains a global tag creation control only; it creates a tag in the database and attaches it to no items.
+- Bulk tag assignment is deferred beyond V1.
+
+**Documentation updated**
+
+- Captured the V1-FIX-003 design in `dev_management/v1_feedback_fixes.md` to keep V1 planning in the existing project management style.
+- Updated `docs/product/user-stories.md` with global tag creation, item-scoped assignment, substring search, and item-scoped removal stories.
+- Updated `docs/development/manual-smoke-scenarios.md` with manual tag lifecycle checks.
+- Updated `docs/release/windows-v1-checklist.md` with a manual tag smoke pass.
+- Updated `dev_management/v1_feedback_fixes.md`: `V1-FIX-003` moved from `deferred` to `planned`.
+
+**Implementation plan outline**
+
+- Replace `addTagToFirstItem` with global-only tag creation.
+- Add per-item tag input state keyed by item ID.
+- Filter global `tags` by case-insensitive substring and exclude tags already attached to the item.
+- Attach selected suggestions through the existing `POST /items/:itemId/tags` API.
+- Keep existing item tag removal through `DELETE /items/:itemId/tags/:tagId`.
+- Add regression tests proving global tag creation does not attach to the first item and item-level suggestions attach only to the selected item.
+
+## 2026-04-22 - V1-FIX-003 implemented
+
+**Scope delivered**
+
+- Replaced the old first-item tag assignment behavior with global-only tag creation.
+- Added item-scoped tag inputs below each card summary area.
+- Existing item tags render as removable blocks with `x` in the item tag area.
+- Typing in a card tag input shows matching existing tags by case-insensitive substring.
+- Suggestions exclude tags already attached to that item.
+- Clicking a suggestion attaches that tag only to the selected item and clears the input.
+- Bulk tag assignment remains out of scope for V1.
+
+**TDD evidence**
+
+- RED: web tests failed because top `Create tag` still called `POST /items/itm_1/tags`.
+- RED: web tests failed because `Find tag for Second Bookmark` did not exist.
+- GREEN: web tests passed after global tag creation was decoupled from item assignment and item-level tag suggestions were added.
+
+**Verification evidence**
+
+- `npm run typecheck` passed on 2026-04-22.
+- `npm run lint` passed on 2026-04-22.
+- `npm test` passed on 2026-04-22:
+  - Smoke helpers: 8 tests passed.
+  - Backend: 40 tests passed.
+  - Web: 13 tests passed.
+  - Shared: 3 tests passed.
+
+**Review notes**
+
+- Backend API changes were not required; V1 already had global tag creation and item-level attach/remove endpoints.
+- Documentation for user stories and manual/release smoke checks was updated before implementation and remains aligned with the delivered UI.
+
+## 2026-04-22 - V1-FIX-003 accepted by manual QA
+
+**Manual QA result**
+
+- User confirmed the item-scoped tag workflow works as needed.
+- User confirmed the delivered behavior matches the V1-FIX-003 design.
+
+**Status update**
+
+- Accepted: V1-FIX-003.
+- All currently tracked V1 feedback fixes are accepted.
+
+## 2026-04-22 - V1 finalized and retrospective created
+
+**Documentation review**
+
+- Scanned `docs` and `dev_management` for active open markers: `TODO`, `TBD`, unchecked checklist items, pending statuses, and rework statuses.
+- No active V1 open questions remain in current control documents.
+- Historical `planned`, `deferred`, `out of scope`, and `future` mentions remain in the append-only action log and accepted iteration history where they explain past decisions.
+- Updated `dev_management/iteration_plan.md` to close stale cross-cutting decision checkboxes, record final V1 acceptance, and move remaining ideas into Post-V1 / V2 backlog candidates.
+- Updated the risk register from `open` to `managed` for V1.
+- Updated `docs/architecture/overview.md` so AI processing reflects the actual V1 metadata-only context strategy.
+- Updated `docs/development/data-backup.md` to reflect that `data/logs` is now implemented.
+
+**Retrospective**
+
+- Added `dev_management/v1_retrospective.md`.
+- Captured V1 process lessons and V2 working improvements:
+  - define observable user outcomes before coding;
+  - keep one source of truth for editable UI state;
+  - separate global resource creation from item-scoped assignment;
+  - investigate external provider failures directly;
+  - keep documentation in the project's existing control system;
+  - reduce token use with canonical docs, compact status tables, targeted reads, and concise evidence.
+
+**Decision**
+
+- V1 is finalized for the current accepted local-first scope.
+- V2 planning should start from `dev_management/v1_retrospective.md` and the Post-V1 / V2 backlog candidates in `dev_management/iteration_plan.md`.

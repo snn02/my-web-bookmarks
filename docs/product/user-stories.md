@@ -15,22 +15,24 @@
 
 ## Tags
 
-8. As a user, I want to assign multiple tags to one item so I can classify it across several topics.
-9. As a user, I want to edit and remove tags so my classification stays clean.
-10. As a user, I want AI to suggest tags so I can process my reading list faster.
+8. As a user, I want to create reusable tags in the global tag list so I can use the same categories across bookmarks.
+9. As a user, I want to assign existing tags from inside a specific item card so I do not accidentally tag the wrong bookmark.
+10. As a user, I want to find existing tags by typing a substring in an item card so tagging stays fast as the tag list grows.
+11. As a user, I want to remove a tag from a specific item without deleting the tag globally.
+12. As a user, I want AI to suggest tags so I can process my reading list faster.
 
 ## Summary
 
-11. As a user, I want AI to generate a Russian summary for an article so I can quickly decide whether to read it in full.
-12. As a user, I want the generated summary to appear directly in the editable field so I can correct or refine it immediately.
-13. As a user, I want the current summary to be stored locally so I do not need to recreate it every time.
+13. As a user, I want AI to generate a Russian summary for an article so I can quickly decide whether to read it in full.
+14. As a user, I want the generated summary to appear directly in the editable field so I can correct or refine it immediately.
+15. As a user, I want the current summary to be stored locally so I do not need to recreate it every time.
 
 ## Retrieval
 
-14. As a user, I want to search by title, URL, domain, or summary so I can find old materials quickly.
-15. As a user, I want to filter by status and tags so I can focus on a relevant subset of items.
+16. As a user, I want to search by title, URL, domain, or summary so I can find old materials quickly.
+17. As a user, I want to filter by status and tags so I can focus on a relevant subset of items.
 
 ## Settings and Reliability
 
-16. As a user, I want to configure OpenRouter credentials and model choice so I can control cost and quality.
-17. As a user, I want the app to remain usable without AI configuration so core bookmark processing still works locally.
+18. As a user, I want to configure OpenRouter credentials and model choice so I can control cost and quality.
+19. As a user, I want the app to remain usable without AI configuration so core bookmark processing still works locally.

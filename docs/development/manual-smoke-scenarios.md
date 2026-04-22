@@ -15,6 +15,19 @@ These scenarios mirror the lifecycle checks introduced after Iteration 4 and Ite
 - Change the item status with `New`, `Read`, and `Archive`.
 - Expected result: the visible status and green active button move to the selected status without requiring another sync.
 
+## Manual Tag Lifecycle
+
+- Enter a tag name in the top `New tag` field.
+- Press `Create tag`.
+- Expected result: the tag is created globally and appears in tag filters, but no bookmark item receives it automatically.
+- In one item card, type part of an existing tag name in the item-level tag input.
+- Expected result: a suggestion list shows existing tags that contain the typed substring and are not already attached to the item.
+- Click one suggested tag.
+- Expected result: the tag appears only on that item.
+- Confirm another item did not receive the tag.
+- Click `x` on the item tag block.
+- Expected result: the tag is removed from that item but remains available globally.
+
 ## AI Lifecycle
 
 - Leave OpenRouter API key empty.
@@ -28,7 +41,7 @@ These scenarios mirror the lifecycle checks introduced after Iteration 4 and Ite
 - Expected result: short tag suggestions appear but are not persisted.
 - If OpenRouter returns an upstream failure, expected result: the UI shows a readable troubleshooting message, not a raw JSON error payload.
 - Confirm one suggestion.
-- Expected result: the tag appears on the item.
+- Expected result: the tag appears on the item through the same item-scoped tag area.
 
 ## No-Indefinite-State Rule
 

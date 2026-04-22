@@ -47,6 +47,7 @@ const summaryDrafts = ref<Record<string, string>>({});
 const aiBusyItemId = ref('');
 const aiErrorMessage = ref('');
 const tagSuggestionsByItemId = ref<Record<string, TagSuggestion[]>>({});
+const tagSearchByItemId = ref<Record<string, string>>({});
 
 const selectedTagId = computed(() => tagFilter.value || undefined);
 
@@ -117,18 +118,20 @@ async function setStatus(item: BookmarkItem, status: ItemStatus): Promise<void> 
   replaceItem(updated);
 }
 
-async function addTagToFirstItem(): Promise<void> {
-  if (!newTagName.value.trim() || !items.value[0]) return;
+async function createGlobalTag(): Promise<void> {
+  if (!newTagName.value.trim()) return;
   const tag = await createTag(newTagName.value.trim());
   tags.value = [...tags.value, tag].sort((left, right) => left.name.localeCompare(right.name));
-  const result = await attachTagToItem(items.value[0].id, tag.id);
-  replaceItem({ ...items.value[0], tags: result.tags });
   newTagName.value = '';
 }
 
 async function detachTag(item: BookmarkItem, tagId: string): Promise<void> {
-  await removeTagFromItem(item.id, tagId);
-  replaceItem({ ...item, tags: item.tags.filter((tag) => tag.id !== tagId) });
+  try {
+    await removeTagFromItem(item.id, tagId);
+    replaceItem({ ...item, tags: item.tags.filter((tag) => tag.id !== tagId) });
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to remove tag.';
+  }
 }
 
 async function saveSummary(item: BookmarkItem): Promise<void> {
@@ -240,6 +243,31 @@ async function applySuggestedTag(item: BookmarkItem, suggestion: TagSuggestion):
   }
 }
 
+async function attachExistingTag(item: BookmarkItem, tag: Tag): Promise<void> {
+  errorMessage.value = '';
+  try {
+    const result = await attachTagToItem(item.id, tag.id);
+    replaceItem({ ...item, tags: result.tags });
+    tagSearchByItemId.value = {
+      ...tagSearchByItemId.value,
+      [item.id]: ''
+    };
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to attach tag.';
+  }
+}
+
+function matchingTagsForItem(item: BookmarkItem): Tag[] {
+  const query = (tagSearchByItemId.value[item.id] ?? '').trim().toLowerCase();
+  if (!query) return [];
+
+  const attachedIds = new Set(item.tags.map((tag) => tag.id));
+  return tags.value
+    .filter((tag) => !attachedIds.has(tag.id))
+    .filter((tag) => tag.name.toLowerCase().includes(query))
+    .slice(0, 8);
+}
+
 function syncSummaryDrafts(): void {
   const drafts: Record<string, string> = {};
   for (const item of items.value) {
@@ -321,7 +349,7 @@ function delay(milliseconds: number): Promise<void> {
       <strong>{{ total }}</strong>
       <span>items</span>
       <input v-model="newTagName" aria-label="New tag name" placeholder="New tag" />
-      <button aria-label="Create tag" type="button" @click="addTagToFirstItem">Create tag</button>
+      <button aria-label="Create tag" type="button" @click="createGlobalTag">Create tag</button>
     </section>
 
     <section v-if="!loading && items.length === 0" class="empty">No bookmarks match the current view.</section>
@@ -365,13 +393,6 @@ function delay(milliseconds: number): Promise<void> {
           </button>
         </div>
 
-        <div class="tags">
-          <span v-for="tag in item.tags" :key="tag.id">
-            {{ tag.name }}
-            <button :aria-label="`Remove ${tag.name} from ${item.title}`" type="button" @click="detachTag(item, tag.id)">x</button>
-          </span>
-        </div>
-
         <div class="summary-editor">
           <textarea v-model="summaryDrafts[item.id]" :aria-label="`Summary for ${item.title}`" rows="4" />
           <div class="actions">
@@ -403,6 +424,30 @@ function delay(milliseconds: number): Promise<void> {
             >
               {{ suggestion.name }}
             </button>
+          </div>
+          <div class="tag-editor" :aria-label="`Tags for ${item.title}`">
+            <div class="tags">
+              <span v-for="tag in item.tags" :key="tag.id">
+                {{ tag.name }}
+                <button :aria-label="`Remove ${tag.name} from ${item.title}`" type="button" @click="detachTag(item, tag.id)">x</button>
+              </span>
+            </div>
+            <input
+              v-model="tagSearchByItemId[item.id]"
+              :aria-label="`Find tag for ${item.title}`"
+              placeholder="Find existing tag"
+            />
+            <div v-if="matchingTagsForItem(item).length" class="tag-suggestions">
+              <button
+                v-for="tag in matchingTagsForItem(item)"
+                :key="tag.id"
+                :aria-label="`Apply existing tag ${tag.name} to ${item.title}`"
+                type="button"
+                @click="attachExistingTag(item, tag)"
+              >
+                {{ tag.name }}
+              </button>
+            </div>
           </div>
         </div>
       </article>
@@ -587,6 +632,26 @@ button:disabled {
 }
 
 .suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.tag-editor {
+  border: 1px solid #d9e0ea;
+  border-radius: 6px;
+  margin-top: 12px;
+  padding: 10px;
+}
+
+.tag-editor input {
+  box-sizing: border-box;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.tag-suggestions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;

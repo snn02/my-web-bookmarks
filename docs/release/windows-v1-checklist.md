@@ -51,6 +51,16 @@ C:\Users\<user>\AppData\Local\Google\Chrome\User Data\Default
 - Confirm each item shows its current status in green.
 - Click `New`, `Read`, and `Archive` on one item and confirm the green active button moves to the selected status.
 
+## Manual Tag Smoke Pass
+
+- Enter a new tag in the top `New tag` field and press `Create tag`.
+- Confirm the tag appears in the tag filter list.
+- Confirm the tag is not attached to any bookmark automatically.
+- In a specific item card, type part of an existing tag name in the item-level tag input.
+- Confirm matching existing tags appear as suggestions.
+- Click a suggestion and confirm the tag is attached only to that item.
+- Remove the tag with `x` and confirm it is removed only from that item.
+
 ## AI Smoke Pass
 
 - Leave OpenRouter API key empty and press `Generate summary`.
@@ -60,6 +70,7 @@ C:\Users\<user>\AppData\Local\Google\Chrome\User Data\Default
 - Confirm a generated Russian summary appears directly in the editable summary field, or a visible upstream/configuration error appears.
 - Press `Suggest tags`.
 - Confirm suggestions are not attached until one is explicitly selected.
+- Confirm selected AI suggestions attach through the item-scoped tag area.
 - If OpenRouter fails upstream, confirm the UI shows a readable troubleshooting message instead of raw JSON.
 - If OpenRouter returns a rate limit, confirm the UI says to wait and retry or choose another model.
 - Confirm the raw API key is not shown after save or generation.
