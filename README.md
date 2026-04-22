@@ -1,44 +1,44 @@
-# My Web Bookmarks
+﻿# My Web Bookmarks
 
-Локальное desktop-first приложение для работы с закладками Chrome: импорт, статусы, теги и AI-сводки через OpenRouter.
+Local desktop-first app for managing Chrome bookmarks: import, statuses, tags, and AI summaries via OpenRouter.
 
-## Что умеет
+## Features
 
-- Импортировать закладки из локального профиля Chrome
-- Хранить данные локально в SQLite
-- Управлять статусами (`new` / `read` / `archived`)
-- Создавать глобальные теги и назначать их на конкретные закладки
-- Генерировать и редактировать одну актуальную AI-сводку для каждой закладки
-- Предлагать теги через AI без автосохранения (только после подтверждения пользователем)
+- Import bookmarks from a local Chrome profile
+- Store data locally in SQLite
+- Manage item statuses (`new` / `read` / `archived`)
+- Create global tags and assign them to specific items
+- Generate and edit one current AI summary per item
+- Suggest tags with AI without auto-saving (saved only after user confirmation)
 
-## Технологии
+## Tech Stack
 
 - Frontend: Vue 3 + Vite + TypeScript
 - Backend: Node.js + Express + TypeScript
 - Monorepo: npm workspaces
-- Хранилище: SQLite (локально)
+- Storage: SQLite (local)
 
-## Требования
+## Requirements
 
 - Windows
 - Node.js `>=24`
 - npm `>=11`
 
-## Быстрый старт
+## Quick Start
 
 ```powershell
 npm install
 ```
 
-Запуск в двух терминалах из корня репозитория:
+Run in two terminals from the repository root.
 
-Терминал 1:
+Terminal 1:
 
 ```powershell
 npm run dev:api
 ```
 
-Терминал 2:
+Terminal 2:
 
 ```powershell
 npm run dev:web
@@ -47,7 +47,7 @@ npm run dev:web
 - API: `http://127.0.0.1:4321`
 - Web (Vite): `http://127.0.0.1:5173`
 
-## Запуск через launcher (Windows)
+## Run With Launcher (Windows)
 
 ```powershell
 npm run launcher:start
@@ -56,13 +56,13 @@ npm run launcher:restart
 npm run launcher:stop
 ```
 
-Опционально можно создать ярлык на рабочем столе:
+Optionally create a desktop shortcut:
 
 ```powershell
 npm run launcher:create-shortcut
 ```
 
-## Проверки качества
+## Quality Checks
 
 ```powershell
 npm run typecheck
@@ -71,55 +71,55 @@ npm test
 npm run smoke
 ```
 
-Дополнительные smoke-команды:
+Additional smoke commands:
 
 ```powershell
 npm run e2e:smoke
 npm run smoke:v2
 ```
 
-## Полезные npm-скрипты
+## Useful npm Scripts
 
-- `npm run dev:api` — локальный backend
-- `npm run dev:web` — локальный frontend
-- `npm run test` — базовые и workspace тесты
-- `npm run test:launcher` — тесты launcher-скрипта
-- `npm run e2e:smoke` — e2e smoke-проверка
-- `npm run smoke` — smoke runner проекта
+- `npm run dev:api` - run local backend
+- `npm run dev:web` - run local frontend
+- `npm run test` - root and workspace tests
+- `npm run test:launcher` - launcher script tests
+- `npm run e2e:smoke` - browser smoke checks
+- `npm run smoke` - project smoke runner
 
-## Структура репозитория
+## Repository Structure
 
 ```text
 apps/
-  desktop-api/   # локальный API (/api/v1)
+  desktop-api/   # local API (/api/v1)
   web/           # UI (Inbox + Settings)
 packages/
-  shared/        # общие типы/DTO/контракты
+  shared/        # shared types/DTOs/contracts
 docs/
   api/
   architecture/
   development/
   product/
   release/
-dev_management/  # планы версий, action logs, tracking
-scripts/         # launcher, smoke, e2e и служебные скрипты
-data/            # локальные runtime/log/sqlite/cache директории
+dev_management/  # version plans, action logs, tracking
+scripts/         # launcher, smoke, e2e, utility scripts
+data/            # local runtime/log/sqlite/cache directories
 ```
 
-## Документация
+## Documentation
 
-- Локальная настройка: [`docs/development/local-setup.md`](docs/development/local-setup.md)
-- Архитектура: [`docs/architecture/overview.md`](docs/architecture/overview.md)
-- API-контракт: [`docs/api/local-api.md`](docs/api/local-api.md)
-- Ручные smoke-сценарии: [`docs/development/manual-smoke-scenarios.md`](docs/development/manual-smoke-scenarios.md)
+- Local setup: [`docs/development/local-setup.md`](docs/development/local-setup.md)
+- Architecture: [`docs/architecture/overview.md`](docs/architecture/overview.md)
+- API contract: [`docs/api/local-api.md`](docs/api/local-api.md)
+- Manual smoke scenarios: [`docs/development/manual-smoke-scenarios.md`](docs/development/manual-smoke-scenarios.md)
 - Release checklist (Windows): [`docs/release/windows-release-checklist.md`](docs/release/windows-release-checklist.md)
-- План V3: [`dev_management/v3_plan.md`](dev_management/v3_plan.md)
+- V3 plan: [`dev_management/v3_plan.md`](dev_management/v3_plan.md)
 
-## Разработка и трекинг
+## Development And Tracking
 
-Проект следует правилам `agents.md`:
+The project follows `agents.md`:
 
-- каждое изменение делается маленьким проверяемым slice
-- для каждого slice должен быть GitHub Issue
-- статус выполнения ведется в Issue, а roadmap/решения — в `dev_management/v3_plan.md`
-- lessons learned фиксируются в `dev_management/action_log_v3.md`
+- Each change is shipped as a small, testable slice
+- Each slice must be linked to a GitHub Issue
+- Execution status lives in the Issue; roadmap and decisions live in `dev_management/v3_plan.md`
+- Lessons learned are recorded in `dev_management/action_log_v3.md`
