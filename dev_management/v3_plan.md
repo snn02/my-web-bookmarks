@@ -4,6 +4,10 @@
 
 Deliver a cleaner, modernized workflow-focused UI by splitting Inbox work from Settings and improving operation feedback.
 
+## Version Status
+
+Closed on 2026-04-22.
+
 ## Iterations
 
 ## V3-I1: Compact Inbox List + Accordion Details

@@ -21,15 +21,23 @@ These scenarios mirror the lifecycle checks introduced after Iteration 4 and Ite
 ## Sync Lifecycle
 
 - Start backend and web UI.
+- Confirm the app opens in `Inbox` view and `Settings` is accessible from the top switch.
+- Open `Settings` and verify `Chrome profile path` and OpenRouter controls are present.
+- Return to `Inbox` and verify those settings controls are not present there.
 - Leave Chrome profile path empty.
 - Press `Sync`.
 - Expected result: sync reaches a final failed state and displays an actionable error.
 - Enter a real Chrome profile folder path.
+- Press `Save path`.
+- Expected result: a visible success confirmation appears.
+- Return to `Inbox`.
 - Press `Sync`.
-- Expected result: sync reaches a final state and imported items appear, or a visible error explains the failure.
+- Expected result: sync button switches to `Syncing...` during run and then ends in a visible final state (`success` or `failure`).
+- Expected result: imported items appear on success, or a visible error explains the failure.
 - For an imported item, confirm the current status text is green and the matching `New`, `Read`, or `Archive` action button is green.
 - Change the item status with `New`, `Read`, and `Archive`.
 - Expected result: the visible status and green active button move to the selected status without requiring another sync.
+- Expected result: a visible success confirmation appears for the status update.
 
 ## Manual Tag Lifecycle
 
@@ -46,15 +54,21 @@ These scenarios mirror the lifecycle checks introduced after Iteration 4 and Ite
 
 ## AI Lifecycle
 
+- Open `Settings`.
 - Leave OpenRouter API key empty.
+- Return to `Inbox`.
 - Press `Generate summary`.
 - Expected result: AI action reaches a visible failure state and manual bookmark workflows still work.
+- Return to `Settings`.
 - Enter OpenRouter API key and model.
-- Press `Generate summary` without pressing `Save AI` first.
-- Expected result: settings are saved or validated as part of the action, then the generated Russian summary appears directly in the editable summary field, or the UI shows a visible upstream error.
+- Press `Save AI`.
+- Expected result: a visible success confirmation appears.
+- Return to `Inbox`.
+- Press `Generate summary`.
+- Expected result: button shows `Generating...` while running, then generated Russian summary appears directly in the editable summary field, or the UI shows a visible upstream error.
 - If OpenRouter returns `429`, expected result: the UI says the OpenRouter rate limit was reached and suggests waiting or choosing another model.
 - Press `Suggest tags`.
-- Expected result: short tag suggestions appear but are not persisted.
+- Expected result: button shows `Suggesting...` while running; short tag suggestions appear but are not persisted.
 - If OpenRouter returns an upstream failure, expected result: the UI shows a readable troubleshooting message, not a raw JSON error payload.
 - Confirm one suggestion.
 - Expected result: the tag appears on the item through the same item-scoped tag area.

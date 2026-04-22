@@ -36,3 +36,11 @@
 
 18. As a user, I want to configure OpenRouter credentials and model choice so I can control cost and quality.
 19. As a user, I want the app to remain usable without AI configuration so core bookmark processing still works locally.
+
+## V3 Workflow UI
+
+20. As a user, I want to see a compact inbox list so large bookmark sets are easier to scan quickly.
+21. As a user, I want to expand only one bookmark card when needed so details do not overload the main view.
+22. As a user, I want app settings on a separate screen so operational processing and configuration are not mixed.
+23. As a user, I want long operations to show clear running and final states so I always understand what happened.
+24. As a user, I want success and failure confirmations after key actions so I do not repeat actions unnecessarily.

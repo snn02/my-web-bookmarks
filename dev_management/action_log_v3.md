@@ -126,3 +126,28 @@ This log is the active implementation journal for V3.
 **Lesson that changes future work**
 
 - For UI flow changes spanning multiple iterations, keep a dedicated lifecycle test that verifies visible final states and confirmation messaging together.
+
+## 2026-04-22 - V3 Closed
+
+**What changed**
+
+- Confirmed V3 iterations completed and accepted:
+  - V3-I1 compact inbox accordion
+  - V3-I2 separate settings screen
+  - V3-I3 unified operation feedback
+- Confirmed GitHub issues #1, #2, #3 are closed.
+- Updated owner docs for V3 behavior:
+  - `docs/product/user-stories.md`
+  - `docs/development/manual-smoke-scenarios.md`
+
+**What passed after**
+
+- V3 verification gates remained green on final implementation:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm test`
+  - `npm run smoke`
+
+**Lesson that changes future work**
+
+- Final version closure should include an explicit owner-doc sweep to avoid “accepted in code, stale in docs” gaps.
