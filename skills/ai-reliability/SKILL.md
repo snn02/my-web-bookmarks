@@ -28,6 +28,14 @@ description: Handle AI summary/tag-suggestion behavior with reliable diagnostics
    - `npm run typecheck`
    - `npm run lint`
 
+## Large File Anti-Hallucination Rules
+
+1. Use bounded chunking and explicit extraction traces for large inputs.
+2. Do not make confident claims without grounded extracted evidence.
+3. If grounding is insufficient, return a final readable failure state (for example `not_enough_grounded_context`) instead of speculative content.
+4. Keep provider-specific diagnostics visible end-to-end without exposing secrets.
+5. Record the failure class and mitigation in the linked GitHub Issue when this path is triggered.
+
 ## Prompt Constraints (V1-Compatible)
 
 - Summary generation: Russian output.

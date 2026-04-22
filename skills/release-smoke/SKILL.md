@@ -35,3 +35,4 @@ npm run smoke
 ## Completion Rule
 
 Do not mark release-ready if any workflow remains indefinitely in loading/running/generating without a visible final state.
+Do not mark release-ready if linked GitHub Issues for release slices do not contain current status and verification evidence.

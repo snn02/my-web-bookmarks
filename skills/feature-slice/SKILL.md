@@ -13,19 +13,21 @@ description: Implement a behavior slice end-to-end for this project. Use when ch
 ## Workflow
 
 1. State expected visible outcome and final states.
-2. Add/update failing tests first.
-3. Implement minimal vertical slice.
-4. Verify no duplicate editable source of truth.
-5. Verify scope boundaries:
+2. Create or link the GitHub Issue for this slice; set initial status labels.
+3. Add/update failing tests first.
+4. Implement minimal vertical slice.
+5. Verify no duplicate editable source of truth.
+6. Verify scope boundaries:
    - global create does not mutate unrelated item;
    - item action affects only selected item.
-6. Run verification:
+7. Run verification:
    - `npm run typecheck`
    - `npm run lint`
    - `npm test`
    - `npm run smoke` when flow is lifecycle-critical.
-7. Update owner docs only if behavior changed.
-8. Record concise implementation evidence in active log `dev_management/action_log_v<version>.md`.
+8. Update execution status and evidence in the linked GitHub Issue.
+9. Update owner docs only if behavior changed.
+10. Record concise implementation evidence in active log `dev_management/action_log_v<version>.md`.
 
 ## Stop Conditions
 
