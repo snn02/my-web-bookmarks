@@ -6,9 +6,11 @@ coverage/
 data/sqlite/*
 data/logs/*
 data/cache/*
+data/runtime/*
 !data/sqlite/.gitkeep
 !data/logs/.gitkeep
 !data/cache/.gitkeep
+!data/runtime/.gitkeep
 
 .env
 .env.*

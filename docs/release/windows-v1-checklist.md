@@ -21,19 +21,32 @@ Expected smoke result:
 
 ## Local Startup
 
-- Start the backend:
+Optional one-click setup:
 
 ```powershell
-npm run dev:api
+npm run launcher:create-shortcut
 ```
 
-- Start the web UI in another terminal:
+- The command creates `My Web Bookmarks.lnk` on your Desktop.
+- You can launch the app stack by double-clicking that shortcut.
+
+- Start the app stack with launcher:
 
 ```powershell
-npm run dev:web
+npm run launcher:start
 ```
 
-- Open the Vite URL shown by the web command, usually `http://127.0.0.1:5173`.
+- Confirm launcher status:
+
+```powershell
+npm run launcher:status
+```
+
+- Expected status output:
+  - `launcher: running`
+  - `api: running`
+  - `web: running`
+- Open `http://127.0.0.1:5173`.
 - Confirm `data/sqlite/app.db` is created after backend startup.
 
 ## Bookmark Sync Smoke Pass
@@ -99,3 +112,28 @@ C:\Users\<user>\AppData\Local\Google\Chrome\User Data\Default
 For V1, use local development commands plus this checklist.
 
 Electron or Tauri packaging is deferred until the app needs a non-developer launch experience.
+
+## Local Shutdown
+
+- Stop the app stack:
+
+```powershell
+npm run launcher:stop
+```
+
+- Run stop again to validate idempotency:
+
+```powershell
+npm run launcher:stop
+```
+
+- Confirm status:
+
+```powershell
+npm run launcher:status
+```
+
+- Expected status output:
+  - `launcher: stopped`
+  - `api: stopped`
+  - `web: stopped`

@@ -10,13 +10,22 @@
   "scripts": {
     "dev:api": "npm run dev --workspace @my-web-bookmarks/desktop-api",
     "dev:web": "npm run dev --workspace @my-web-bookmarks/web",
+    "launcher:restart": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/launcher.ps1 restart",
+    "launcher:create-shortcut": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create-desktop-shortcut.ps1",
+    "launcher:start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/launcher.ps1 start",
+    "launcher:status": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/launcher.ps1 status",
+    "launcher:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/launcher.ps1 stop",
     "lint": "npm run lint --workspaces --if-present",
     "smoke": "tsx scripts/smoke-runner.ts",
     "test": "npm run test:smoke && npm run test --workspaces --if-present",
+    "test:launcher": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/launcher.test.ps1",
     "test:smoke": "node --test scripts/smoke-test.test.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },
   "engines": {
     "node": ">=24"
+  },
+  "devDependencies": {
+    "@playwright/mcp": "^0.0.70"
   }
 }

@@ -2,6 +2,22 @@
 
 These scenarios mirror the lifecycle checks introduced after Iteration 4 and Iteration 5.
 
+## Launcher Lifecycle
+
+- Optional shortcut setup:
+  - Run `npm run launcher:create-shortcut`.
+  - Confirm `My Web Bookmarks.lnk` appears on Desktop.
+  - Double-click it once and continue with the checks below.
+- Run `npm run launcher:start`.
+- Run `npm run launcher:status`.
+- Expected result: launcher, api, and web are all shown as `running`.
+- Run `npm run launcher:restart`.
+- Run `npm run launcher:status`.
+- Expected result: launcher returns to `running` without manual recovery steps.
+- Run `npm run launcher:stop` twice.
+- Run `npm run launcher:status`.
+- Expected result: `stop` is idempotent and status remains `stopped`.
+
 ## Sync Lifecycle
 
 - Start backend and web UI.
