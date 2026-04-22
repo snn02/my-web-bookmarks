@@ -103,7 +103,7 @@ Deliver an operationally reliable local launch flow for Windows with one-click s
 
 ## V2-I3: Browser E2E Smoke
 
-**Status:** planned
+**Status:** accepted
 
 **User-visible outcome (before/after)**
 
@@ -126,9 +126,18 @@ Deliver an operationally reliable local launch flow for Windows with one-click s
 
 - Run smoke from clean startup and confirm deterministic pass/fail output.
 
+**Verification Evidence (2026-04-22)**
+
+- `npm run e2e:smoke:happy` passed through aggregate smoke runner.
+- `npm run e2e:smoke` passed (`happy-path` + `failure-path` checks reported `ok`).
+- Added stable e2e scripts:
+  - `scripts/e2e-smoke-happy.mjs`
+  - `scripts/e2e-smoke-lib.mjs`
+  - `scripts/e2e-smoke-runner.mjs`
+
 ## V2-I4: Failure Smoke + Release Gate
 
-**Status:** planned
+**Status:** accepted
 
 **User-visible outcome (before/after)**
 
@@ -149,9 +158,19 @@ Deliver an operationally reliable local launch flow for Windows with one-click s
 
 - Validate failure message is actionable and non-technical where possible.
 
+**Verification Evidence (2026-04-22)**
+
+- `npm run e2e:smoke` passed with controlled failure-path assertions:
+  - sync reaches `failed` final state;
+  - readable sync error text is visible in UI.
+- Added release gate command `npm run smoke:v2`.
+- `npm run smoke:v2` passed:
+  - `npm run test:launcher` green;
+  - `npm run e2e:smoke` green.
+
 ## V2-I5: Hardening + Docs By Ownership
 
-**Status:** planned
+**Status:** accepted
 
 **User-visible outcome (before/after)**
 
@@ -179,6 +198,24 @@ Deliver an operationally reliable local launch flow for Windows with one-click s
 
 - Windows launch/restart/stop/status walkthrough.
 - Browser smoke happy + controlled failure confirmation.
+
+**Verification Evidence (2026-04-22)**
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm test` passed.
+- `npm run smoke` passed.
+- `npm run smoke:v2` passed.
+
+**Docs Updated By Ownership**
+
+- Manual QA/release:
+  - `docs/development/manual-smoke-scenarios.md`
+  - `docs/release/windows-v1-checklist.md`
+- Process/lessons:
+  - `dev_management/action_log_v2.md`
+- V2 control/acceptance:
+  - `dev_management/v2_plan.md`
 
 ## Definition Of Done For This V2 Wave
 

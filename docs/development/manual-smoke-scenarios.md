@@ -62,3 +62,19 @@ These scenarios mirror the lifecycle checks introduced after Iteration 4 and Ite
 ## No-Indefinite-State Rule
 
 No main workflow should remain indefinitely in `running`, `loading`, or `generating`. Each workflow must end in success, failure, retryable error, or a clearly visible blocked state.
+
+## Browser E2E Smoke
+
+- Run `npm run e2e:smoke`.
+- Expected result:
+  - `happy-path: ok`
+  - `failure-path: ok`
+  - final line `e2e smoke: pass`
+
+## V2 Gate
+
+- Run `npm run smoke:v2`.
+- Expected result:
+  - launcher checks pass;
+  - browser e2e smoke checks pass;
+  - command exits with success status.

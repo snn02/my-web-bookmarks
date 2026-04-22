@@ -178,3 +178,55 @@ Source logs: `dev_management/action_log_v1.md`, `dev_management/v1_retrospective
 **Lesson**
 
 - Browser launch and Playwright checks require non-sandbox execution in this environment because sandboxed process spawn fails with `EPERM`.
+
+## 2026-04-22 - V2-I3 And V2-I4 Implemented (Browser Smoke + Failure Gate)
+
+**What changed**
+
+- Added browser smoke scripts:
+  - `scripts/e2e-smoke-lib.mjs`
+  - `scripts/e2e-smoke-happy.mjs`
+  - `scripts/e2e-smoke-failure.mjs`
+  - `scripts/e2e-smoke-runner.mjs`
+- Added npm commands:
+  - `e2e:smoke:happy`
+  - `e2e:smoke:failure`
+  - `e2e:smoke`
+  - `smoke:v2`
+- Added controlled failure-path assertion to verify:
+  - sync reaches a final `failed` state;
+  - sync error is visible and readable in UI.
+
+**What failed first**
+
+- Initial e2e runner failed due nested `spawn` usage and sandbox process restrictions.
+- Failure-path selectors initially targeted visible button text instead of `aria-label` names.
+
+**What passed after**
+
+- `npm run e2e:smoke` passed with `happy-path` and `failure-path` both `ok`.
+- `npm run smoke:v2` passed (`test:launcher` + `e2e:smoke`).
+
+**Lesson that changes future work**
+
+- For UI automation in this environment, direct launcher invocation and explicit `aria-label` selectors produce the most stable results.
+
+## 2026-04-22 - V2-I5 Hardening And Docs Finalized
+
+**What changed**
+
+- Completed final hardening verification batch for V2 scope.
+- Finalized ownership-based docs for launcher and e2e smoke workflow.
+- Marked `V2-I5` as accepted in `dev_management/v2_plan.md`.
+
+**Final verification evidence**
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm test` passed.
+- `npm run smoke` passed.
+- `npm run smoke:v2` passed.
+
+**Operational note**
+
+- In this environment, `npm test`, `npm run smoke`, and Playwright e2e commands require non-sandbox execution because sandboxed subprocess launch returns `EPERM`.

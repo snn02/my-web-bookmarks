@@ -8,6 +8,7 @@ Use this checklist before treating the local V1 app as ready for regular use.
 - Run `npm run lint`.
 - Run `npm test`.
 - Run `npm run smoke`.
+- Run `npm run smoke:v2`.
 
 Expected smoke result:
 
@@ -18,6 +19,7 @@ Expected smoke result:
 - bookmark sync reaches a final failed state when Chrome profile path is missing;
 - the failure message is visible in the API response.
 - structured logs are written under `data/logs` without OpenRouter-style keys.
+- launcher and browser smoke gate passes (`happy-path` + `failure-path`).
 
 ## Local Startup
 
