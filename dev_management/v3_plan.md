@@ -9,7 +9,7 @@ Deliver a cleaner, modernized workflow-focused UI by splitting Inbox work from S
 ## V3-I1: Compact Inbox List + Accordion Details
 
 **Status:** planned  
-**Issue:** create dedicated issue at start
+**Issue:** #1 ([URL](https://github.com/snn02/my-web-bookmarks/issues/1))
 
 **User-visible outcome (before/after)**
 
@@ -40,7 +40,7 @@ Deliver a cleaner, modernized workflow-focused UI by splitting Inbox work from S
 ## V3-I2: Separate Settings Screen
 
 **Status:** planned  
-**Issue:** create dedicated issue at start
+**Issue:** #2 ([URL](https://github.com/snn02/my-web-bookmarks/issues/2))
 
 **User-visible outcome (before/after)**
 
@@ -69,7 +69,7 @@ Deliver a cleaner, modernized workflow-focused UI by splitting Inbox work from S
 ## V3-I3: Unified Loaders + Operation Confirmations
 
 **Status:** planned  
-**Issue:** create dedicated issue at start
+**Issue:** #3 ([URL](https://github.com/snn02/my-web-bookmarks/issues/3))
 
 **User-visible outcome (before/after)**
 
