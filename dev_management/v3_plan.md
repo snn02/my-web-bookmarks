@@ -68,7 +68,7 @@ Deliver a cleaner, modernized workflow-focused UI by splitting Inbox work from S
 
 ## V3-I3: Unified Loaders + Operation Confirmations
 
-**Status:** planned  
+**Status:** accepted  
 **Issue:** #3 ([URL](https://github.com/snn02/my-web-bookmarks/issues/3))
 
 **User-visible outcome (before/after)**

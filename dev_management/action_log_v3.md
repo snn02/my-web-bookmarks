@@ -93,3 +93,36 @@ This log is the active implementation journal for V3.
 **Lesson that changes future work**
 
 - When introducing URL-based UI view switching, explicitly reset history state in test setup to avoid cross-test view leakage.
+
+## 2026-04-22 - V3-I3 Completed (Unified Lifecycles + Confirmations)
+
+**What changed**
+
+- Added unified operation lifecycle phases in UI:
+  - global sync phase: `idle`, `running`, `success`, `failure`
+  - per-item phases: summary save, summary generation, tag suggestion
+- Added consistent operation feedback:
+  - lifecycle badges/text in Inbox for sync and item operations
+  - success/error toast-style confirmations for key operations
+- Added operation-specific button feedback for long actions:
+  - `Syncing...`
+  - `Generating...`
+  - `Suggesting...`
+- Added/updated test coverage for lifecycle and confirmation behavior in web tests.
+
+**What failed first**
+
+- New settings-route behavior caused test view leakage because browser path persisted across tests.
+- One sync error test still expected legacy call ordering from pre-I2 flow.
+
+**What passed after**
+
+- Updated tests for route reset and new call sequence.
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm test` passed.
+- `npm run smoke` passed.
+
+**Lesson that changes future work**
+
+- For UI flow changes spanning multiple iterations, keep a dedicated lifecycle test that verifies visible final states and confirmation messaging together.

@@ -26,6 +26,15 @@ import {
 
 type BackendState = 'checking' | 'available' | 'unavailable';
 type AppView = 'inbox' | 'settings';
+type OperationPhase = 'idle' | 'running' | 'success' | 'failure';
+type NoticeType = 'success' | 'error';
+type ItemOperation = 'saveSummary' | 'generateSummary' | 'suggestTags';
+
+interface ItemOperationState {
+  saveSummary: OperationPhase;
+  generateSummary: OperationPhase;
+  suggestTags: OperationPhase;
+}
 
 const backendState = ref<BackendState>('checking');
 const items = ref<BookmarkItem[]>([]);
@@ -44,6 +53,7 @@ const openRouterConfigured = ref(false);
 const openRouterModel = ref('');
 const syncStatus = ref<SyncStatus | null>(null);
 const syncInProgress = ref(false);
+const syncPhase = ref<OperationPhase>('idle');
 const summaryDrafts = ref<Record<string, string>>({});
 const aiBusyItemId = ref('');
 const aiErrorMessage = ref('');
@@ -51,6 +61,9 @@ const tagSuggestionsByItemId = ref<Record<string, TagSuggestion[]>>({});
 const tagSearchByItemId = ref<Record<string, string>>({});
 const expandedItemIds = ref<string[]>([]);
 const currentView = ref<AppView>(viewFromPath(currentPath()));
+const itemOperationStateById = ref<Record<string, ItemOperationState>>({});
+const notice = ref<{ type: NoticeType; message: string } | null>(null);
+let noticeTimer: number | undefined;
 
 const selectedTagId = computed(() => tagFilter.value || undefined);
 
@@ -64,6 +77,9 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('popstate', handlePopState);
+  if (noticeTimer !== undefined) {
+    window.clearTimeout(noticeTimer);
+  }
 });
 
 async function checkBackend(): Promise<void> {
@@ -122,49 +138,86 @@ async function applyFilters(): Promise<void> {
 }
 
 async function setStatus(item: BookmarkItem, status: ItemStatus): Promise<void> {
-  const updated = await updateItemStatus(item.id, status);
-  replaceItem(updated);
+  try {
+    const updated = await updateItemStatus(item.id, status);
+    replaceItem(updated);
+    showNotice('success', `Status updated: ${status}.`);
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to update status.';
+    showNotice('error', 'Status update failed.');
+  }
 }
 
 async function createGlobalTag(): Promise<void> {
   if (!newTagName.value.trim()) return;
-  const tag = await createTag(newTagName.value.trim());
-  tags.value = [...tags.value, tag].sort((left, right) => left.name.localeCompare(right.name));
-  newTagName.value = '';
+  try {
+    const tag = await createTag(newTagName.value.trim());
+    tags.value = [...tags.value, tag].sort((left, right) => left.name.localeCompare(right.name));
+    newTagName.value = '';
+    showNotice('success', `Tag created: ${tag.name}.`);
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to create tag.';
+    showNotice('error', 'Tag creation failed.');
+  }
 }
 
 async function detachTag(item: BookmarkItem, tagId: string): Promise<void> {
   try {
     await removeTagFromItem(item.id, tagId);
     replaceItem({ ...item, tags: item.tags.filter((tag) => tag.id !== tagId) });
+    showNotice('success', 'Tag removed from item.');
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Failed to remove tag.';
+    showNotice('error', 'Removing tag failed.');
   }
 }
 
 async function saveSummary(item: BookmarkItem): Promise<void> {
-  const summary = await updateSummary(item.id, summaryDrafts.value[item.id] ?? '');
-  replaceItem({ ...item, summary });
+  setItemOperationPhase(item.id, 'saveSummary', 'running');
+  try {
+    const summary = await updateSummary(item.id, summaryDrafts.value[item.id] ?? '');
+    replaceItem({ ...item, summary });
+    setItemOperationPhase(item.id, 'saveSummary', 'success');
+    showNotice('success', 'Summary saved.');
+  } catch (error) {
+    setItemOperationPhase(item.id, 'saveSummary', 'failure');
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to save summary.';
+    showNotice('error', 'Saving summary failed.');
+  }
 }
 
 async function saveProfilePath(): Promise<void> {
-  const settings = await saveChromeProfilePath(chromeProfilePath.value);
-  chromeProfilePath.value = settings.chromeProfilePath ?? chromeProfilePath.value;
+  try {
+    const settings = await saveChromeProfilePath(chromeProfilePath.value);
+    chromeProfilePath.value = settings.chromeProfilePath ?? chromeProfilePath.value;
+    showNotice('success', 'Chrome profile path saved.');
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to save profile path.';
+    showNotice('error', 'Saving profile path failed.');
+  }
 }
 
 async function saveAiSettings(): Promise<void> {
-  const openRouterPatch = {
-    ...(openRouterApiKey.value.trim() ? { apiKey: openRouterApiKey.value.trim() } : {}),
-    model: openRouterModel.value
-  };
-  const settings = await saveOpenRouterSettings(openRouterPatch);
-  openRouterConfigured.value = settings.openRouter.apiKeyConfigured;
-  openRouterModel.value = settings.openRouter.model ?? openRouterModel.value;
-  openRouterApiKey.value = '';
+  try {
+    const openRouterPatch = {
+      ...(openRouterApiKey.value.trim() ? { apiKey: openRouterApiKey.value.trim() } : {}),
+      model: openRouterModel.value
+    };
+    const settings = await saveOpenRouterSettings(openRouterPatch);
+    openRouterConfigured.value = settings.openRouter.apiKeyConfigured;
+    openRouterModel.value = settings.openRouter.model ?? openRouterModel.value;
+    openRouterApiKey.value = '';
+    showNotice('success', 'AI settings saved.');
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to save AI settings.';
+    showNotice('error', 'Saving AI settings failed.');
+    throw error;
+  }
 }
 
 async function syncBookmarks(): Promise<void> {
   syncInProgress.value = true;
+  syncPhase.value = 'running';
   errorMessage.value = '';
   try {
     const startedStatus = await startBookmarkSync();
@@ -175,9 +228,18 @@ async function syncBookmarks(): Promise<void> {
 
     if (finalStatus.status === 'succeeded') {
       await applyFilters();
+      syncPhase.value = 'success';
+      showNotice('success', 'Bookmark sync completed.');
+    } else if (finalStatus.status === 'failed') {
+      syncPhase.value = 'failure';
+      showNotice('error', finalStatus.error ?? 'Bookmark sync failed.');
+    } else {
+      syncPhase.value = 'idle';
     }
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Failed to sync bookmarks.';
+    syncPhase.value = 'failure';
+    showNotice('error', 'Starting bookmark sync failed.');
   } finally {
     syncInProgress.value = false;
   }
@@ -202,6 +264,7 @@ function toggleItemExpanded(itemId: string): void {
 
 async function generateAiSummary(item: BookmarkItem): Promise<void> {
   aiBusyItemId.value = item.id;
+  setItemOperationPhase(item.id, 'generateSummary', 'running');
   aiErrorMessage.value = '';
   try {
     await saveAiSettings();
@@ -211,8 +274,12 @@ async function generateAiSummary(item: BookmarkItem): Promise<void> {
       ...summaryDrafts.value,
       [item.id]: summary.content
     };
+    setItemOperationPhase(item.id, 'generateSummary', 'success');
+    showNotice('success', 'Summary generated.');
   } catch (error) {
+    setItemOperationPhase(item.id, 'generateSummary', 'failure');
     aiErrorMessage.value = error instanceof Error ? error.message : 'Failed to generate summary.';
+    showNotice('error', 'Generating summary failed.');
   } finally {
     aiBusyItemId.value = '';
   }
@@ -220,6 +287,7 @@ async function generateAiSummary(item: BookmarkItem): Promise<void> {
 
 async function loadTagSuggestions(item: BookmarkItem): Promise<void> {
   aiBusyItemId.value = item.id;
+  setItemOperationPhase(item.id, 'suggestTags', 'running');
   aiErrorMessage.value = '';
   try {
     await saveAiSettings();
@@ -228,8 +296,12 @@ async function loadTagSuggestions(item: BookmarkItem): Promise<void> {
       ...tagSuggestionsByItemId.value,
       [item.id]: result.suggestions
     };
+    setItemOperationPhase(item.id, 'suggestTags', 'success');
+    showNotice('success', 'Tag suggestions loaded.');
   } catch (error) {
+    setItemOperationPhase(item.id, 'suggestTags', 'failure');
     aiErrorMessage.value = error instanceof Error ? error.message : 'Failed to suggest tags.';
+    showNotice('error', 'Tag suggestion failed.');
   } finally {
     aiBusyItemId.value = '';
   }
@@ -255,6 +327,7 @@ async function applySuggestedTag(item: BookmarkItem, suggestion: TagSuggestion):
     };
   } catch (error) {
     aiErrorMessage.value = error instanceof Error ? error.message : 'Failed to apply suggested tag.';
+    showNotice('error', 'Applying suggested tag failed.');
   }
 }
 
@@ -269,6 +342,7 @@ async function attachExistingTag(item: BookmarkItem, tag: Tag): Promise<void> {
     };
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Failed to attach tag.';
+    showNotice('error', 'Attaching tag failed.');
   }
 }
 
@@ -290,6 +364,11 @@ function syncSummaryDrafts(): void {
   }
   summaryDrafts.value = drafts;
   expandedItemIds.value = expandedItemIds.value.filter((id) => items.value.some((item) => item.id === id));
+  const nextStates: Record<string, ItemOperationState> = {};
+  for (const item of items.value) {
+    nextStates[item.id] = itemOperationStateById.value[item.id] ?? createItemOperationState();
+  }
+  itemOperationStateById.value = nextStates;
 }
 
 async function waitForSyncCompletion(): Promise<SyncStatus> {
@@ -331,6 +410,39 @@ function navigateTo(view: AppView): void {
 function handlePopState(): void {
   currentView.value = viewFromPath(window.location.pathname);
 }
+
+function createItemOperationState(): ItemOperationState {
+  return {
+    saveSummary: 'idle',
+    generateSummary: 'idle',
+    suggestTags: 'idle'
+  };
+}
+
+function itemOperationPhase(itemId: string, operation: ItemOperation): OperationPhase {
+  return itemOperationStateById.value[itemId]?.[operation] ?? 'idle';
+}
+
+function setItemOperationPhase(itemId: string, operation: ItemOperation, phase: OperationPhase): void {
+  const current = itemOperationStateById.value[itemId] ?? createItemOperationState();
+  itemOperationStateById.value = {
+    ...itemOperationStateById.value,
+    [itemId]: {
+      ...current,
+      [operation]: phase
+    }
+  };
+}
+
+function showNotice(type: NoticeType, message: string): void {
+  notice.value = { type, message };
+  if (noticeTimer !== undefined) {
+    window.clearTimeout(noticeTimer);
+  }
+  noticeTimer = window.setTimeout(() => {
+    notice.value = null;
+  }, 3000);
+}
 </script>
 
 <template>
@@ -364,6 +476,7 @@ function handlePopState(): void {
     </header>
 
     <p v-if="loading" class="muted">Loading inbox...</p>
+    <p v-if="notice" :class="['notice', `notice-${notice.type}`]" role="status">{{ notice.message }}</p>
     <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
     <p v-if="aiErrorMessage" class="error">{{ aiErrorMessage }}</p>
 
@@ -389,7 +502,10 @@ function handlePopState(): void {
     </section>
 
     <section v-if="currentView === 'inbox'" class="sync-band" aria-label="Sync controls">
-      <button aria-label="Sync bookmarks" type="button" :disabled="syncInProgress" @click="syncBookmarks">Sync</button>
+      <button aria-label="Sync bookmarks" type="button" :disabled="syncInProgress" @click="syncBookmarks">
+        {{ syncInProgress ? 'Syncing...' : 'Sync' }}
+      </button>
+      <span class="sync-phase" :class="`phase-${syncPhase}`">Lifecycle: {{ syncPhase }}</span>
       <span v-if="syncStatus" class="sync-status">
         Sync: {{ syncStatus.status }} | +{{ syncStatus.importedCount }} / ~{{ syncStatus.updatedCount }} / skipped {{ syncStatus.skippedCount }}
       </span>
@@ -468,7 +584,13 @@ function handlePopState(): void {
                 :disabled="aiBusyItemId === item.id"
                 @click="generateAiSummary(item)"
               >
-                {{ item.summary ? 'Regenerate summary' : 'Generate summary' }}
+                {{
+                  itemOperationPhase(item.id, 'generateSummary') === 'running'
+                    ? 'Generating...'
+                    : item.summary
+                      ? 'Regenerate summary'
+                      : 'Generate summary'
+                }}
               </button>
               <button
                 :aria-label="`Suggest tags for ${item.title}`"
@@ -476,7 +598,7 @@ function handlePopState(): void {
                 :disabled="aiBusyItemId === item.id"
                 @click="loadTagSuggestions(item)"
               >
-                Suggest tags
+                {{ itemOperationPhase(item.id, 'suggestTags') === 'running' ? 'Suggesting...' : 'Suggest tags' }}
               </button>
             </div>
             <div v-if="tagSuggestionsByItemId[item.id]?.length" class="suggestions">
@@ -651,6 +773,33 @@ button:disabled {
   color: #334155;
 }
 
+.sync-phase {
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 8px;
+}
+
+.phase-idle {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.phase-running {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.phase-success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.phase-failure {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 .status-current {
   color: #18743a;
   font-weight: 700;
@@ -665,6 +814,26 @@ button:disabled {
   color: #a31919;
   margin: 0 auto 16px;
   max-width: 1180px;
+}
+
+.notice {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  margin: 0 auto 16px;
+  max-width: 1180px;
+  padding: 10px 12px;
+}
+
+.notice-success {
+  background: #ecfdf3;
+  border-color: #9adbb7;
+  color: #17603b;
+}
+
+.notice-error {
+  background: #fff1f1;
+  border-color: #efb3b3;
+  color: #8f1e1e;
 }
 
 .sync-error {

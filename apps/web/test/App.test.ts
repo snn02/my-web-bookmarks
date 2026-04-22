@@ -325,6 +325,61 @@ describe('App', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('Chrome Bookmarks file was not found'));
   });
 
+  it('shows operation lifecycle and success confirmations for save summary and sync', async () => {
+    const fetchMock = vi.fn();
+    for (const response of createInitialResponses()) {
+      fetchMock.mockResolvedValueOnce(response);
+    }
+    fetchMock
+      .mockResolvedValueOnce(
+        ok({
+          itemId: 'itm_1',
+          content: 'Saved by user',
+          updatedAt: '2026-04-08T18:50:00Z',
+          updatedBy: 'user'
+        })
+      )
+      .mockResolvedValueOnce(
+        ok({
+          status: 'running',
+          startedAt: '2026-04-08T18:20:00Z',
+          finishedAt: null,
+          importedCount: 0,
+          updatedCount: 0,
+          skippedCount: 0,
+          error: null
+        })
+      )
+      .mockResolvedValueOnce(
+        ok({
+          status: 'succeeded',
+          startedAt: '2026-04-08T18:20:00Z',
+          finishedAt: '2026-04-08T18:20:01Z',
+          importedCount: 1,
+          updatedCount: 0,
+          skippedCount: 0,
+          error: null
+        })
+      )
+      .mockResolvedValueOnce(syncedItemList());
+    vi.stubGlobal('fetch', fetchMock);
+
+    const wrapper = mount(App);
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
+    expect(wrapper.text()).toContain('Lifecycle: idle');
+
+    await expandItem(wrapper, 'Vue Guide');
+    await wrapper.get('[aria-label="Save summary for Vue Guide"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Summary saved.');
+
+    await wrapper.get('[aria-label="Sync bookmarks"]').trigger('click');
+    await flushPromises();
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Lifecycle: success'));
+    expect(wrapper.text()).toContain('Bookmark sync completed.');
+  });
+
   it('generates summaries and confirms AI tag suggestions with visible outcomes', async () => {
     const fetchMock = vi.fn();
     for (const response of createInitialResponses()) {
