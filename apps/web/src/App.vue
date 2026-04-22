@@ -48,6 +48,7 @@ const aiBusyItemId = ref('');
 const aiErrorMessage = ref('');
 const tagSuggestionsByItemId = ref<Record<string, TagSuggestion[]>>({});
 const tagSearchByItemId = ref<Record<string, string>>({});
+const expandedItemIds = ref<string[]>([]);
 
 const selectedTagId = computed(() => tagFilter.value || undefined);
 
@@ -185,6 +186,18 @@ function replaceItem(updated: BookmarkItem): void {
   syncSummaryDrafts();
 }
 
+function isItemExpanded(itemId: string): boolean {
+  return expandedItemIds.value.includes(itemId);
+}
+
+function toggleItemExpanded(itemId: string): void {
+  if (isItemExpanded(itemId)) {
+    expandedItemIds.value = expandedItemIds.value.filter((id) => id !== itemId);
+    return;
+  }
+  expandedItemIds.value = [...expandedItemIds.value, itemId];
+}
+
 async function generateAiSummary(item: BookmarkItem): Promise<void> {
   aiBusyItemId.value = item.id;
   aiErrorMessage.value = '';
@@ -274,6 +287,7 @@ function syncSummaryDrafts(): void {
     drafts[item.id] = summaryDrafts.value[item.id] ?? item.summary?.content ?? '';
   }
   summaryDrafts.value = drafts;
+  expandedItemIds.value = expandedItemIds.value.filter((id) => items.value.some((item) => item.id === id));
 }
 
 async function waitForSyncCompletion(): Promise<SyncStatus> {
@@ -356,97 +370,110 @@ function delay(milliseconds: number): Promise<void> {
 
     <section class="item-list" aria-label="Bookmark list">
       <article v-for="item in items" :key="item.id" class="item-card">
-        <div class="item-main">
-          <p class="domain">{{ item.domain }}</p>
-          <h2>{{ item.title }}</h2>
+        <button
+          class="item-row"
+          type="button"
+          :aria-label="`Toggle details for ${item.title}`"
+          :aria-expanded="isItemExpanded(item.id)"
+          @click="toggleItemExpanded(item.id)"
+        >
+          <div class="item-main">
+            <p class="domain">{{ item.domain }}</p>
+            <h2>{{ item.title }}</h2>
+            <p class="url">{{ item.url }}</p>
+          </div>
+          <div class="row-meta">
+            <span class="status-chip">{{ item.status }}</span>
+            <span class="meta">Imported: {{ item.importedAt }}</span>
+            <span class="expand-indicator">{{ isItemExpanded(item.id) ? 'Hide' : 'Details' }}</span>
+          </div>
+        </button>
+
+        <div v-if="isItemExpanded(item.id)" class="item-details">
           <a :href="item.url" target="_blank" rel="noreferrer">Open original</a>
-          <p class="url">{{ item.url }}</p>
-          <p class="meta">
-            Status: <span class="status-current">{{ item.status }}</span> | Imported: {{ item.importedAt }}
-          </p>
-        </div>
 
-        <div class="actions">
-          <button
-            :aria-label="`Mark ${item.title} as new`"
-            :class="{ 'status-active': item.status === 'new' }"
-            type="button"
-            @click="setStatus(item, 'new')"
-          >
-            New
-          </button>
-          <button
-            :aria-label="`Mark ${item.title} as read`"
-            :class="{ 'status-active': item.status === 'read' }"
-            type="button"
-            @click="setStatus(item, 'read')"
-          >
-            Read
-          </button>
-          <button
-            :aria-label="`Archive ${item.title}`"
-            :class="{ 'status-active': item.status === 'archived' }"
-            type="button"
-            @click="setStatus(item, 'archived')"
-          >
-            Archive
-          </button>
-        </div>
-
-        <div class="summary-editor">
-          <textarea v-model="summaryDrafts[item.id]" :aria-label="`Summary for ${item.title}`" rows="4" />
           <div class="actions">
-            <button :aria-label="`Save summary for ${item.title}`" type="button" @click="saveSummary(item)">Save summary</button>
             <button
-              :aria-label="`Generate summary for ${item.title}`"
+              :aria-label="`Mark ${item.title} as new`"
+              :class="{ 'status-active': item.status === 'new' }"
               type="button"
-              :disabled="aiBusyItemId === item.id"
-              @click="generateAiSummary(item)"
+              @click="setStatus(item, 'new')"
             >
-              {{ item.summary ? 'Regenerate summary' : 'Generate summary' }}
+              New
             </button>
             <button
-              :aria-label="`Suggest tags for ${item.title}`"
+              :aria-label="`Mark ${item.title} as read`"
+              :class="{ 'status-active': item.status === 'read' }"
               type="button"
-              :disabled="aiBusyItemId === item.id"
-              @click="loadTagSuggestions(item)"
+              @click="setStatus(item, 'read')"
             >
-              Suggest tags
+              Read
             </button>
-          </div>
-          <div v-if="tagSuggestionsByItemId[item.id]?.length" class="suggestions">
             <button
-              v-for="suggestion in tagSuggestionsByItemId[item.id]"
-              :key="suggestion.name"
-              :aria-label="`Apply suggested tag ${suggestion.name} to ${item.title}`"
+              :aria-label="`Archive ${item.title}`"
+              :class="{ 'status-active': item.status === 'archived' }"
               type="button"
-              @click="applySuggestedTag(item, suggestion)"
+              @click="setStatus(item, 'archived')"
             >
-              {{ suggestion.name }}
+              Archive
             </button>
           </div>
-          <div class="tag-editor" :aria-label="`Tags for ${item.title}`">
-            <div class="tags">
-              <span v-for="tag in item.tags" :key="tag.id">
-                {{ tag.name }}
-                <button :aria-label="`Remove ${tag.name} from ${item.title}`" type="button" @click="detachTag(item, tag.id)">x</button>
-              </span>
-            </div>
-            <input
-              v-model="tagSearchByItemId[item.id]"
-              :aria-label="`Find tag for ${item.title}`"
-              placeholder="Find existing tag"
-            />
-            <div v-if="matchingTagsForItem(item).length" class="tag-suggestions">
+
+          <div class="summary-editor">
+            <textarea v-model="summaryDrafts[item.id]" :aria-label="`Summary for ${item.title}`" rows="4" />
+            <div class="actions">
+              <button :aria-label="`Save summary for ${item.title}`" type="button" @click="saveSummary(item)">Save summary</button>
               <button
-                v-for="tag in matchingTagsForItem(item)"
-                :key="tag.id"
-                :aria-label="`Apply existing tag ${tag.name} to ${item.title}`"
+                :aria-label="`Generate summary for ${item.title}`"
                 type="button"
-                @click="attachExistingTag(item, tag)"
+                :disabled="aiBusyItemId === item.id"
+                @click="generateAiSummary(item)"
               >
-                {{ tag.name }}
+                {{ item.summary ? 'Regenerate summary' : 'Generate summary' }}
               </button>
+              <button
+                :aria-label="`Suggest tags for ${item.title}`"
+                type="button"
+                :disabled="aiBusyItemId === item.id"
+                @click="loadTagSuggestions(item)"
+              >
+                Suggest tags
+              </button>
+            </div>
+            <div v-if="tagSuggestionsByItemId[item.id]?.length" class="suggestions">
+              <button
+                v-for="suggestion in tagSuggestionsByItemId[item.id]"
+                :key="suggestion.name"
+                :aria-label="`Apply suggested tag ${suggestion.name} to ${item.title}`"
+                type="button"
+                @click="applySuggestedTag(item, suggestion)"
+              >
+                {{ suggestion.name }}
+              </button>
+            </div>
+            <div class="tag-editor" :aria-label="`Tags for ${item.title}`">
+              <div class="tags">
+                <span v-for="tag in item.tags" :key="tag.id">
+                  {{ tag.name }}
+                  <button :aria-label="`Remove ${tag.name} from ${item.title}`" type="button" @click="detachTag(item, tag.id)">x</button>
+                </span>
+              </div>
+              <input
+                v-model="tagSearchByItemId[item.id]"
+                :aria-label="`Find tag for ${item.title}`"
+                placeholder="Find existing tag"
+              />
+              <div v-if="matchingTagsForItem(item).length" class="tag-suggestions">
+                <button
+                  v-for="tag in matchingTagsForItem(item)"
+                  :key="tag.id"
+                  :aria-label="`Apply existing tag ${tag.name} to ${item.title}`"
+                  type="button"
+                  @click="attachExistingTag(item, tag)"
+                >
+                  {{ tag.name }}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -574,7 +601,7 @@ button:disabled {
 
 .item-list {
   display: grid;
-  gap: 14px;
+  gap: 10px;
   margin: 0 auto;
   max-width: 1180px;
 }
@@ -583,19 +610,69 @@ button:disabled {
   background: #ffffff;
   border: 1px solid #dde3eb;
   border-radius: 8px;
+  overflow: hidden;
+}
+
+.item-row {
+  align-items: center;
+  background: #ffffff;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
   display: grid;
-  gap: 14px;
+  gap: 12px;
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: 18px;
+  padding: 14px 16px;
+  text-align: left;
+  width: 100%;
 }
 
 .item-main {
   min-width: 0;
 }
 
+.item-main h2 {
+  font-size: 1rem;
+  line-height: 1.3;
+  margin: 2px 0;
+}
+
 .url {
   color: #405065;
+  font-size: 0.9rem;
+  margin: 0;
   overflow-wrap: anywhere;
+}
+
+.row-meta {
+  align-items: flex-end;
+  color: #5d6978;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  gap: 4px;
+}
+
+.status-chip {
+  background: #e8f0ff;
+  border-radius: 999px;
+  color: #214f8f;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  text-transform: capitalize;
+}
+
+.expand-indicator {
+  color: #3f5774;
+  font-weight: 600;
+}
+
+.item-details {
+  border-top: 1px solid #e5eaf1;
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px 16px;
 }
 
 .actions,
@@ -621,7 +698,7 @@ button:disabled {
 }
 
 .summary-editor {
-  grid-column: 1 / -1;
+  min-width: 0;
 }
 
 .summary-editor textarea {
@@ -663,10 +740,14 @@ button:disabled {
   .toolbar,
   .settings-band,
   .summary-row,
-  .item-card {
+  .item-row {
     align-items: stretch;
     display: flex;
     flex-direction: column;
+  }
+
+  .row-meta {
+    align-items: flex-start;
   }
 }
 </style>

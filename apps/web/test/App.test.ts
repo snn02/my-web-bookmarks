@@ -99,6 +99,14 @@ function syncedItemList() {
   });
 }
 
+async function expandItem(wrapper: any, title: string): Promise<void> {
+  const toggle = wrapper.get(`[aria-label="Toggle details for ${title}"]`);
+  if (toggle.attributes('aria-expanded') !== 'true') {
+    await toggle.trigger('click');
+    await flushPromises();
+  }
+}
+
 describe('App', () => {
   beforeEach(() => {
     vi.unstubAllGlobals();
@@ -116,6 +124,8 @@ describe('App', () => {
 
     expect(fetch).toHaveBeenCalledWith('/api/v1/health');
     expect(wrapper.text()).toContain('Vue Guide');
+    expect(wrapper.find('[aria-label="Summary for Vue Guide"]').exists()).toBe(false);
+    await expandItem(wrapper, 'Vue Guide');
     expect((wrapper.get('[aria-label="Summary for Vue Guide"]').element as HTMLTextAreaElement).value).toBe(
       'Useful summary'
     );
@@ -191,6 +201,7 @@ describe('App', () => {
     expect(fetchMock).toHaveBeenLastCalledWith('/api/v1/items?q=vue&status=new&sort=importedAt%3Adesc');
     await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
 
+    await expandItem(wrapper, 'Vue Guide');
     await wrapper.get('[aria-label="Mark Vue Guide as read"]').trigger('click');
     await flushPromises();
     expect(wrapper.get('[aria-label="Mark Vue Guide as read"]').classes()).toContain('status-active');
@@ -227,6 +238,7 @@ describe('App', () => {
     const wrapper = mount(App);
     await vi.waitFor(() => expect(wrapper.text()).toContain('Second Bookmark'));
 
+    await expandItem(wrapper, 'Second Bookmark');
     await wrapper.get('[aria-label="Find tag for Second Bookmark"]').setValue('read');
     await vi.waitFor(() => expect(wrapper.text()).toContain('reading-list'));
     expect(wrapper.find('[aria-label="Apply existing tag frontend to Second Bookmark"]').exists()).toBe(false);
@@ -325,6 +337,7 @@ describe('App', () => {
     const wrapper = mount(App);
     await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
 
+    await expandItem(wrapper, 'Vue Guide');
     await wrapper.get('[aria-label="OpenRouter API key"]').setValue('or-v1-secret');
     await wrapper.get('[aria-label="OpenRouter model"]').setValue('openai/gpt-5-mini');
     await wrapper.get('[aria-label="Generate summary for Vue Guide"]').trigger('click');
@@ -375,6 +388,7 @@ describe('App', () => {
     const wrapper = mount(App);
     await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
 
+    await expandItem(wrapper, 'Vue Guide');
     await wrapper.get('[aria-label="Generate summary for Vue Guide"]').trigger('click');
     await flushPromises();
 
@@ -412,6 +426,7 @@ describe('App', () => {
     const wrapper = mount(App);
     await vi.waitFor(() => expect(wrapper.text()).toContain('OpenRouter: configured'));
 
+    await expandItem(wrapper, 'Vue Guide');
     await wrapper.get('[aria-label="Generate summary for Vue Guide"]').trigger('click');
     await flushPromises();
 
@@ -465,6 +480,7 @@ describe('App', () => {
     const wrapper = mount(App);
     await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
 
+    await expandItem(wrapper, 'Vue Guide');
     await wrapper.get('[aria-label="Suggest tags for Vue Guide"]').trigger('click');
     await flushPromises();
     await wrapper.get('[aria-label="Apply suggested tag research to Vue Guide"]').trigger('click');

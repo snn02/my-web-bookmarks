@@ -35,3 +35,30 @@ This log is the active implementation journal for V3.
 
 - Create and link V3 issues in `dev_management/v3_plan.md`.
 - Start V3-I1 with test-first grounding and failure-state checks.
+
+## 2026-04-22 - V3-I1 Started (Compact Inbox + Accordion)
+
+**What changed**
+
+- Implemented compact row presentation for Inbox items.
+- Added per-item accordion behavior (`Toggle details`) for expanding/collapsing full item details.
+- Kept item-scoped actions (status, summary, tags, AI actions) inside expanded details panel.
+- Updated web tests to interact with item controls through accordion expansion.
+- Linked V3 iterations to GitHub issues in `dev_management/v3_plan.md`.
+
+**What failed first**
+
+- Sandbox execution blocked Vitest/esbuild process spawn with `spawn EPERM` for web tests.
+- GitHub MCP integration could not create issues due `403 Resource not accessible by integration`.
+
+**What passed after**
+
+- `gh` CLI auth and issue creation succeeded for V3-I1/V3-I2/V3-I3.
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm test` passed.
+- `npm run smoke` passed.
+
+**Lesson that changes future work**
+
+- In this environment, browser/Vite test commands should be executed with escalated permissions when sandbox `EPERM` appears.
