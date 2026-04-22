@@ -137,3 +137,29 @@ This log is the active implementation journal for V4.
 **Next**
 
 - Collect visual acceptance feedback in issue `#4`.
+
+## 2026-04-23 - Lead Review And Lessons Learned
+
+**Lead Review Outcome**
+
+- Scope alignment: PASS (visual-only changes; no API/business logic changes).
+- Test discipline: PASS (`typecheck`, `lint`, `test`, `smoke` all passed after final patch).
+- UX stability: PASS (existing flows and route split remained intact).
+- Documentation discipline: PASS (updates stayed within `v4_plan` + `action_log_v4` and issue details).
+
+**Findings**
+
+- No blocking issues found at release-candidate level for V4.
+- One implementation risk was observed and resolved during delivery:
+  - PrimeVue components require plugin bootstrap in tests; missing plugin caused web test failures and was fixed by mounting with PrimeVue plugin in `apps/web/test/App.test.ts`.
+
+**Lessons Learned (V4)**
+
+- When introducing UI frameworks, update runtime and test bootstrap in the same slice to avoid false-red test regressions.
+- For look-and-feel iterations, ship quickly to in-review and use feedback loops early; it prevented over-investment in the rejected heavy theme.
+- Keep behavior and style boundaries explicit in issue scope; this made visual pivots low-risk.
+- Centralized version tracking (`v4_plan` + issue comments + `action_log_v4`) reduced ambiguity during direction changes.
+
+**Next**
+
+- Close issue `#4` as accepted and mark V4 as closed in tracking artifacts.

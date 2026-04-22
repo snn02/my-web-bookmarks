@@ -14,13 +14,13 @@ Deliver a visual UI modernization (look and feel) on top of the stable V3 UX, wi
 
 ## Version Status
 
-Active (started on 2026-04-23).
+Closed on 2026-04-23.
 
 ## Iterations
 
 ## V4-I1: Command Center Visual Theme Foundation
 
-**Status:** in_review  
+**Status:** accepted  
 **Issue:** #4 ([URL](https://github.com/snn02/my-web-bookmarks/issues/4))
 
 **User-visible outcome (before/after)**
@@ -56,3 +56,9 @@ Active (started on 2026-04-23).
 
 - After creating an issue for a slice, replace `TBD` with `#<id>` and full URL.
 - Keep issue status in GitHub labels/comments and mirror concise status here.
+
+## Version Closure Notes
+
+- V4 completed as a visual-only modernization cycle over stable V3 UX.
+- PrimeVue is now the UI component layer for key controls in the web app.
+- API/business logic/contracts remained unchanged across the slice.
