@@ -19,7 +19,7 @@ This plan is maintained as the development control document. After every iterati
 - the verification evidence: automated tests, tester review, team review
 - newly discovered risks, decisions, and follow-up tasks
 
-Implementation actions, deviations, test results, and lessons learned are logged in `dev_management/action_log.md`.
+Implementation actions, deviations, test results, and lessons learned for V1 are logged in `dev_management/action_log_v1.md`.
 
 ## Current Project Baseline
 
@@ -71,7 +71,7 @@ An iteration can move to `accepted` only when:
 - tester review is complete with no unresolved blocking defects
 - team review is complete and decisions are documented
 - this plan is updated with final status and verification evidence
-- `dev_management/action_log.md` contains a dated implementation summary
+- `dev_management/action_log_v1.md` contains a dated implementation summary
 
 ## Iteration 0: Project Foundation
 

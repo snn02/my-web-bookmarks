@@ -25,6 +25,7 @@ description: Implement a behavior slice end-to-end for this project. Use when ch
    - `npm test`
    - `npm run smoke` when flow is lifecycle-critical.
 7. Update owner docs only if behavior changed.
+8. Record concise implementation evidence in active log `dev_management/action_log_v<version>.md`.
 
 ## Stop Conditions
 

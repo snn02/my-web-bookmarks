@@ -29,7 +29,7 @@ Ship small, testable slices for a local-first bookmarks app without repeating V1
    - Product behavior -> `docs/product/user-stories.md`
    - API contract -> `docs/api/local-api.md`
    - Manual QA/release -> `docs/development/manual-smoke-scenarios.md`, `docs/release/windows-v1-checklist.md`
-   - Process/lessons -> `dev_management/action_log.md`
+   - Process/lessons -> active version log `dev_management/action_log_v<version>.md`
 
 ## Definition Of Done
 
@@ -39,6 +39,7 @@ Ship small, testable slices for a local-first bookmarks app without repeating V1
 - AI failure paths end in readable final states.
 - Required automated checks pass.
 - Required docs are updated once, in the right place.
+- Implementation notes are recorded in the active version log only.
 
 ## Escalation Triggers
 

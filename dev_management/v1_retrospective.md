@@ -82,7 +82,7 @@ V2 improvement:
 Use fewer documents with clearer ownership:
 
 - `dev_management/v2_plan.md`: iteration plan, current status, acceptance gates.
-- `dev_management/action_log.md`: append-only decisions, verification evidence, lessons.
+- `dev_management/action_log_v2.md`: active V2 implementation log (versioned format).
 - `dev_management/v2_feedback_fixes.md`: only if V2 enters a structured bug-fix/adaptation phase.
 - `docs/product/user-stories.md`: user-facing behavior only.
 - `docs/api/local-api.md`: HTTP contract only.
@@ -111,7 +111,7 @@ For iteration and bug-fix tracking, keep one row per item:
 - verification
 - notes
 
-Put detailed reasoning in `action_log.md` only when it changes future behavior.
+Put detailed reasoning in the active version log (`action_log_v<version>.md`) only when it changes future behavior.
 
 ### Batch Documentation Updates By Ownership
 
@@ -120,7 +120,7 @@ For each behavior change:
 - Product expectation: update `docs/product`.
 - API shape: update `docs/api`.
 - Manual test: update `docs/development` or `docs/release`.
-- Implementation lesson: update `action_log.md`.
+- Implementation lesson: update the active version log.
 
 Do not repeat the full feature design in all four places.
 
@@ -184,4 +184,4 @@ These are candidates, not committed scope:
 
 V1 succeeded because the team kept narrowing scope, tested behavior before implementation, and used manual QA feedback quickly. The main cost came from documentation spread and from not always specifying user-visible outcomes before coding.
 
-For V2, the lead discipline should be: one canonical plan, one append-only action log, explicit workflow outcomes, short feedback batches, and provider diagnostics that turn external uncertainty into evidence.
+For V2, the lead discipline should be: one canonical plan, one active versioned action log, explicit workflow outcomes, short feedback batches, and provider diagnostics that turn external uncertainty into evidence.

@@ -1,6 +1,6 @@
-# Development Action Log
+﻿# Development Action Log V1 (Archived)
 
-This log records implementation actions, planning decisions, verification evidence, deviations, and lessons learned. Keep entries dated and append-only where practical.
+This archived log records V1 implementation actions, planning decisions, verification evidence, deviations, and lessons learned.
 
 ## 2026-04-21
 
@@ -21,7 +21,7 @@ This log records implementation actions, planning decisions, verification eviden
 **Actions completed**
 
 - Created `dev_management/iteration_plan.md`.
-- Created `dev_management/action_log.md`.
+- Created `dev_management/action_log_v1.md`.
 - Broke V1 delivery into seven iterations from project foundation through reliability and release readiness.
 - Added verification gates for automated tests, tester review, and team review for every iteration.
 - Added plan maintenance rules so iteration statuses and verification evidence are updated after each iteration.
@@ -1026,7 +1026,7 @@ This log records implementation actions, planning decisions, verification eviden
 
 - Opened a dedicated bug-fix and V1 adaptation iteration for tester feedback.
 - Created `dev_management/v1_feedback_fixes.md` as the working tracker for reported issues and small fixes.
-- Lessons learned will continue to be recorded in this `action_log.md`.
+- Lessons learned will continue to be recorded in this `action_log_v1.md`.
 
 **Working rules**
 
@@ -1288,3 +1288,7 @@ This log records implementation actions, planning decisions, verification eviden
 
 - V1 is finalized for the current accepted local-first scope.
 - V2 planning should start from `dev_management/v1_retrospective.md` and the Post-V1 / V2 backlog candidates in `dev_management/iteration_plan.md`.
+
+
+
+
