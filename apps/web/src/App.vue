@@ -664,18 +664,52 @@ function showNotice(type: NoticeType, message: string): void {
 
 <style scoped>
 .app-shell {
-  background: #f7f8fb;
-  color: #18212c;
+  --bg-canvas: #060b14;
+  --bg-grid: rgba(117, 167, 255, 0.08);
+  --bg-panel: linear-gradient(145deg, #121c2f 0%, #0e1728 100%);
+  --bg-panel-soft: #10192b;
+  --bg-elevated: #17243a;
+  --text-strong: #eaf2ff;
+  --text-main: #ccdaee;
+  --text-muted: #8fa3c2;
+  --line-main: #28374f;
+  --line-strong: #3a5272;
+  --brand-main: #54a8ff;
+  --brand-strong: #2d8bff;
+  --brand-ink: #031328;
+  --ok-bg: #123323;
+  --ok-text: #8ae9b4;
+  --warn-bg: #3a2d14;
+  --warn-text: #ffd799;
+  --danger-bg: #3a1720;
+  --danger-text: #ffc0cc;
+  background:
+    radial-gradient(circle at 5% 0%, rgba(84, 168, 255, 0.16) 0%, rgba(84, 168, 255, 0) 35%),
+    radial-gradient(circle at 90% 10%, rgba(43, 122, 255, 0.14) 0%, rgba(43, 122, 255, 0) 34%),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 39px,
+      var(--bg-grid) 39px,
+      var(--bg-grid) 40px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 39px,
+      var(--bg-grid) 39px,
+      var(--bg-grid) 40px
+    ),
+    var(--bg-canvas);
+  color: var(--text-main);
   font-family:
-    Inter,
+    "Space Grotesk",
+    "Segoe UI Variable",
     ui-sans-serif,
     system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
     sans-serif;
   min-height: 100vh;
-  padding: 24px;
+  padding: 28px;
 }
 
 .topbar,
@@ -684,11 +718,18 @@ function showNotice(type: NoticeType, message: string): void {
 .settings-band,
 .summary-row {
   align-items: center;
+  background: var(--bg-panel);
+  border: 1px solid var(--line-main);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 12px 36px rgba(2, 10, 23, 0.45);
   display: flex;
-  gap: 12px;
+  gap: 14px;
   justify-content: space-between;
-  margin: 0 auto 16px;
+  margin: 0 auto 14px;
   max-width: 1180px;
+  padding: 14px 16px;
 }
 
 .toolbar,
@@ -696,6 +737,7 @@ function showNotice(type: NoticeType, message: string): void {
 .settings-band,
 .summary-row {
   justify-content: flex-start;
+  flex-wrap: wrap;
 }
 
 .topbar-right {
@@ -714,49 +756,80 @@ function showNotice(type: NoticeType, message: string): void {
 .domain,
 .meta,
 .muted {
-  color: #5d6978;
+  color: var(--text-muted);
   margin: 0;
 }
 
 h1,
 h2 {
   margin: 0;
+  color: var(--text-strong);
 }
 
 h1 {
-  font-size: 2.25rem;
+  font-size: clamp(1.7rem, 2.4vw, 2.3rem);
+  letter-spacing: 0.01em;
 }
 
 h2 {
-  font-size: 1.25rem;
+  font-size: 1.18rem;
 }
 
 input,
 select,
 textarea,
 button {
-  border: 1px solid #c9d1dc;
-  border-radius: 6px;
+  border: 1px solid var(--line-main);
+  border-radius: 10px;
   font: inherit;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease,
+    background-color 0.15s ease;
 }
 
 input,
 select,
 textarea {
-  background: #ffffff;
-  padding: 9px 10px;
+  background: var(--bg-panel-soft);
+  color: var(--text-main);
+  padding: 10px 11px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #7f93b3;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--brand-main);
+  box-shadow: 0 0 0 3px rgba(84, 168, 255, 0.2);
+  outline: none;
 }
 
 button {
-  background: #233447;
-  color: #ffffff;
+  background: linear-gradient(160deg, var(--brand-main) 0%, var(--brand-strong) 100%);
+  color: var(--brand-ink);
   cursor: pointer;
-  padding: 9px 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 9px 13px;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
 }
 
 button:disabled {
   cursor: wait;
-  opacity: 0.65;
+  opacity: 0.5;
 }
 
 .toolbar input,
@@ -769,71 +842,82 @@ button:disabled {
   max-width: 1180px;
 }
 
+.status-line {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
 .sync-status {
-  color: #334155;
+  color: var(--text-muted);
 }
 
 .sync-phase {
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 600;
-  padding: 4px 8px;
+  padding: 4px 10px;
 }
 
 .phase-idle {
-  background: #e2e8f0;
-  color: #334155;
+  background: #1d2a40;
+  color: #9fb4d1;
 }
 
 .phase-running {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--warn-bg);
+  color: var(--warn-text);
 }
 
 .phase-success {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--ok-bg);
+  color: var(--ok-text);
 }
 
 .phase-failure {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 .status-current {
-  color: #18743a;
+  color: #7dd7a4;
   font-weight: 700;
 }
 
 .status-active {
-  background: #18743a;
-  border-color: #18743a;
+  background: linear-gradient(160deg, #73deab 0%, #4ab780 100%);
+  border-color: #70d7a4;
+  color: #042013;
 }
 
 .error {
-  color: #a31919;
-  margin: 0 auto 16px;
-  max-width: 1180px;
-}
-
-.notice {
-  border: 1px solid transparent;
-  border-radius: 8px;
+  background: rgba(63, 22, 32, 0.7);
+  border: 1px solid #7b3345;
+  border-radius: 10px;
+  color: #ffb8c5;
   margin: 0 auto 16px;
   max-width: 1180px;
   padding: 10px 12px;
 }
 
+.notice {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  margin: 0 auto 16px;
+  max-width: 1180px;
+  padding: 10px 13px;
+}
+
 .notice-success {
-  background: #ecfdf3;
-  border-color: #9adbb7;
-  color: #17603b;
+  background: rgba(18, 51, 35, 0.78);
+  border-color: #2e8758;
+  color: #9bf2c2;
 }
 
 .notice-error {
-  background: #fff1f1;
-  border-color: #efb3b3;
-  color: #8f1e1e;
+  background: rgba(58, 23, 32, 0.82);
+  border-color: #8a3c4e;
+  color: #ffc3cf;
 }
 
 .sync-error {
@@ -841,8 +925,13 @@ button:disabled {
 }
 
 .empty {
+  background: var(--bg-panel);
+  border: 1px dashed var(--line-strong);
+  border-radius: 14px;
   margin: 32px auto;
   max-width: 1180px;
+  padding: 22px;
+  text-align: center;
 }
 
 .item-list {
@@ -853,15 +942,18 @@ button:disabled {
 }
 
 .item-card {
-  background: #ffffff;
-  border: 1px solid #dde3eb;
-  border-radius: 8px;
+  background: var(--bg-panel);
+  border: 1px solid var(--line-main);
+  border-radius: 12px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 12px 28px rgba(3, 11, 25, 0.4);
   overflow: hidden;
 }
 
 .item-row {
   align-items: center;
-  background: #ffffff;
+  background: transparent;
   border: 0;
   border-radius: 0;
   color: inherit;
@@ -878,13 +970,14 @@ button:disabled {
 }
 
 .item-main h2 {
-  font-size: 1rem;
+  color: var(--text-strong);
+  font-size: 1.02rem;
   line-height: 1.3;
   margin: 2px 0;
 }
 
 .url {
-  color: #405065;
+  color: var(--text-muted);
   font-size: 0.9rem;
   margin: 0;
   overflow-wrap: anywhere;
@@ -892,7 +985,7 @@ button:disabled {
 
 .row-meta {
   align-items: flex-end;
-  color: #5d6978;
+  color: var(--text-muted);
   display: flex;
   flex-direction: column;
   font-size: 0.85rem;
@@ -900,9 +993,9 @@ button:disabled {
 }
 
 .status-chip {
-  background: #e8f0ff;
+  background: #1b2b45;
   border-radius: 999px;
-  color: #214f8f;
+  color: #94bfff;
   font-size: 0.8rem;
   font-weight: 700;
   padding: 3px 8px;
@@ -910,15 +1003,23 @@ button:disabled {
 }
 
 .expand-indicator {
-  color: #3f5774;
+  color: #8fb6e8;
   font-weight: 600;
 }
 
 .item-details {
-  border-top: 1px solid #e5eaf1;
+  border-top: 1px solid var(--line-main);
   display: grid;
   gap: 12px;
   padding: 14px 16px 16px;
+}
+
+.item-details a {
+  color: #8bc2ff;
+}
+
+.item-details a:hover {
+  color: #b8daff;
 }
 
 .actions,
@@ -930,16 +1031,17 @@ button:disabled {
 }
 
 .tags span {
-  background: #e9eef5;
+  background: #1b2d46;
+  border: 1px solid #29466f;
   border-radius: 999px;
-  color: #243244;
+  color: #b8d3f5;
   padding: 4px 8px;
 }
 
 .tags button {
   background: transparent;
   border: 0;
-  color: #243244;
+  color: #b8d3f5;
   padding: 0 0 0 6px;
 }
 
@@ -962,8 +1064,9 @@ button:disabled {
 }
 
 .tag-editor {
-  border: 1px solid #d9e0ea;
-  border-radius: 6px;
+  background: #0d1626;
+  border: 1px solid var(--line-main);
+  border-radius: 10px;
   margin-top: 12px;
   padding: 10px;
 }
@@ -982,6 +1085,10 @@ button:disabled {
 }
 
 @media (max-width: 780px) {
+  .app-shell {
+    padding: 16px 12px;
+  }
+
   .topbar,
   .topbar-right,
   .toolbar,
