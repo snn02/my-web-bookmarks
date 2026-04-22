@@ -189,6 +189,10 @@ async function generateAiSummary(item: BookmarkItem): Promise<void> {
     await saveAiSettings();
     const summary = await generateSummary(item.id);
     replaceItem({ ...item, summary });
+    summaryDrafts.value = {
+      ...summaryDrafts.value,
+      [item.id]: summary.content
+    };
   } catch (error) {
     aiErrorMessage.value = error instanceof Error ? error.message : 'Failed to generate summary.';
   } finally {
@@ -369,7 +373,6 @@ function delay(milliseconds: number): Promise<void> {
         </div>
 
         <div class="summary-editor">
-          <p v-if="item.summary" class="summary-preview">{{ item.summary.content }}</p>
           <textarea v-model="summaryDrafts[item.id]" :aria-label="`Summary for ${item.title}`" rows="4" />
           <div class="actions">
             <button :aria-label="`Save summary for ${item.title}`" type="button" @click="saveSummary(item)">Save summary</button>
@@ -574,11 +577,6 @@ button:disabled {
 
 .summary-editor {
   grid-column: 1 / -1;
-}
-
-.summary-preview {
-  color: #334155;
-  margin: 0 0 8px;
 }
 
 .summary-editor textarea {

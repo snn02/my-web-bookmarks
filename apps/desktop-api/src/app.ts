@@ -205,7 +205,8 @@ export function createApp(options: CreateAppOptions = {}): Express {
     } catch (error) {
       logger.warn('ai.summary.failed', {
         error: error instanceof Error ? error.message : 'Unknown AI summary failure.',
-        itemId: request.params.itemId
+        itemId: request.params.itemId,
+        ...getAiErrorLogMetadata(error)
       });
       return sendAiError(response, error);
     }
@@ -242,7 +243,8 @@ export function createApp(options: CreateAppOptions = {}): Express {
     } catch (error) {
       logger.warn('ai.tag_suggestions.failed', {
         error: error instanceof Error ? error.message : 'Unknown AI tag suggestion failure.',
-        itemId: request.params.itemId
+        itemId: request.params.itemId,
+        ...getAiErrorLogMetadata(error)
       });
       return sendAiError(response, error);
     }
@@ -327,6 +329,18 @@ function sendAiError(response: Parameters<typeof sendApiError>[0], error: unknow
   }
 
   throw error;
+}
+
+function getAiErrorLogMetadata(error: unknown): Record<string, unknown> {
+  if (!(error instanceof AiUpstreamError) || !error.details) {
+    return {};
+  }
+
+  return {
+    upstreamContentType: error.details.contentType,
+    upstreamReason: error.details.reason,
+    upstreamStatus: error.details.status
+  };
 }
 
 function idleSyncStatus() {

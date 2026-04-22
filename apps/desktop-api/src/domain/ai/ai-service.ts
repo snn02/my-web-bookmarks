@@ -1,7 +1,11 @@
 import type { createItemRepository } from '../items/item-repository';
 import type { createSettingsRepository } from '../settings/settings-repository';
 import type { createSummaryRepository } from '../summaries/summary-repository';
-import { createOpenRouterClient, OpenRouterRequestError } from '../../integrations/openrouter/openrouter-client';
+import {
+  createOpenRouterClient,
+  OpenRouterRequestError,
+  type OpenRouterErrorDetails
+} from '../../integrations/openrouter/openrouter-client';
 
 const DEFAULT_OPENROUTER_MODEL = 'openai/gpt-5-mini';
 
@@ -19,8 +23,11 @@ export class AiNotConfiguredError extends Error {
 }
 
 export class AiUpstreamError extends Error {
-  constructor() {
+  public readonly details?: OpenRouterErrorDetails;
+
+  constructor(details?: OpenRouterErrorDetails) {
     super('OpenRouter request failed.');
+    this.details = details;
   }
 }
 
@@ -40,7 +47,7 @@ export function createAiService({ fetchImpl, items, settings, summaries }: AiSer
       {
         role: 'system',
         content:
-          'Summarize a bookmarked web page for a personal reading inbox. Return only the summary text.'
+          'Summarize a bookmarked web page for a personal reading inbox. Write the summary in Russian. Return only the summary text.'
       },
       {
         role: 'user',
@@ -61,7 +68,7 @@ export function createAiService({ fetchImpl, items, settings, summaries }: AiSer
       {
         role: 'system',
         content:
-          'Suggest 3 to 5 short lowercase tags for a bookmarked web page. Return a JSON array of strings only.'
+          'Suggest 3 to 5 short lowercase tags for a bookmarked web page. Return one tag per line. Use Russian when it fits the page topic.'
       },
       {
         role: 'user',
@@ -84,7 +91,7 @@ export function createAiService({ fetchImpl, items, settings, summaries }: AiSer
       return await client.complete(messages);
     } catch (error) {
       if (error instanceof OpenRouterRequestError) {
-        throw new AiUpstreamError();
+        throw new AiUpstreamError(error.details);
       }
       throw error;
     }

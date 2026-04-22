@@ -291,6 +291,7 @@ describe('summaries API', () => {
     );
     const openRouterFetchCalls = openRouterFetch.mock.calls as unknown as [string, RequestInit][];
     expect(JSON.stringify(openRouterFetchCalls[0][1])).toContain('AI summary article');
+    expect(JSON.stringify(openRouterFetchCalls[0][1])).toContain('Russian');
     expect(logs.some((entry) => entry.event === 'ai.summary.generated')).toBe(true);
   });
 
@@ -338,6 +339,9 @@ describe('summaries API', () => {
       ]
     });
     expect(tags.listTags()).toEqual([]);
+    const openRouterFetchCalls = openRouterFetch.mock.calls as unknown as [string, RequestInit][];
+    expect(JSON.stringify(openRouterFetchCalls[0][1])).toContain('one tag per line');
+    expect(JSON.stringify(openRouterFetchCalls[0][1])).not.toContain('JSON array');
   });
 
   it('maps OpenRouter failures to upstream_error', async () => {
@@ -359,6 +363,10 @@ describe('summaries API', () => {
     expect(response.body.error.code).toBe('upstream_error');
     expect(response.body.error.message).toBe('OpenRouter request failed.');
     expect(logs.some((entry) => entry.event === 'ai.summary.failed')).toBe(true);
+    expect(logs.find((entry) => entry.event === 'ai.summary.failed')?.metadata).toMatchObject({
+      upstreamContentType: 'application/json',
+      upstreamStatus: 502
+    });
   });
 
   it('maps OpenRouter network errors to upstream_error', async () => {

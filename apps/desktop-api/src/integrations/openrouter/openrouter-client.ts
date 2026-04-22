@@ -9,6 +9,12 @@ export interface OpenRouterMessage {
   role: 'system' | 'user';
 }
 
+export interface OpenRouterErrorDetails {
+  contentType?: string;
+  reason: 'empty_content' | 'invalid_json' | 'network_error' | 'non_ok_response';
+  status?: number;
+}
+
 interface OpenRouterChoice {
   message?: {
     content?: unknown;
@@ -20,8 +26,11 @@ interface OpenRouterResponse {
 }
 
 export class OpenRouterRequestError extends Error {
-  constructor() {
+  public readonly details: OpenRouterErrorDetails;
+
+  constructor(details: OpenRouterErrorDetails) {
     super('OpenRouter request failed.');
+    this.details = details;
   }
 }
 
@@ -45,22 +54,34 @@ export function createOpenRouterClient({
         method: 'POST'
       });
     } catch {
-      throw new OpenRouterRequestError();
+      throw new OpenRouterRequestError({ reason: 'network_error' });
     }
 
     if (!response.ok) {
-      throw new OpenRouterRequestError();
+      throw new OpenRouterRequestError({
+        contentType: response.headers.get('content-type') ?? undefined,
+        reason: 'non_ok_response',
+        status: response.status
+      });
     }
 
     let body: OpenRouterResponse;
     try {
       body = (await response.json()) as OpenRouterResponse;
     } catch {
-      throw new OpenRouterRequestError();
+      throw new OpenRouterRequestError({
+        contentType: response.headers.get('content-type') ?? undefined,
+        reason: 'invalid_json',
+        status: response.status
+      });
     }
     const content = body.choices?.[0]?.message?.content;
     if (typeof content !== 'string' || !content.trim()) {
-      throw new OpenRouterRequestError();
+      throw new OpenRouterRequestError({
+        contentType: response.headers.get('content-type') ?? undefined,
+        reason: 'empty_content',
+        status: response.status
+      });
     }
 
     return content.trim();

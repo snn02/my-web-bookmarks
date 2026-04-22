@@ -15,7 +15,7 @@ This file tracks the dedicated bug-fix and V1 adaptation iteration.
 
 **Iteration:** Bug-fix and V1 adaptation
 
-**State:** second_batch_planned
+**State:** second_batch_in_progress
 
 ## Feedback Items
 
@@ -24,6 +24,6 @@ This file tracks the dedicated bug-fix and V1 adaptation iteration.
 | V1-FIX-001 | ready_for_review | Current item status is not visually highlighted; status actions look inactive/unclear. | `apps/web/src/App.vue`, `apps/web/test/App.test.ts`, `docs/development/manual-smoke-scenarios.md`, `docs/release/windows-v1-checklist.md` | `npm run typecheck`, `npm run lint`, `npm test` passed on 2026-04-21. | Current status text and active status button are green. |
 | V1-FIX-002 | ready_for_review | AI upstream errors render raw JSON instead of a user-readable message. | `apps/web/src/api/client.ts`, `apps/web/test/api-client.test.ts`, `apps/web/test/App.test.ts`, `docs/api/local-api.md`, `docs/development/manual-smoke-scenarios.md`, `docs/release/windows-v1-checklist.md` | `npm run typecheck`, `npm run lint`, `npm test` passed on 2026-04-21. | Web client translates structured API errors into actionable text; raw JSON is not shown. |
 | V1-FIX-003 | deferred | Tag assignment is unclear and currently attaches a global new tag to the first item. | None | Not started | Deferred by user for separate UI discussion; do not implement in this batch. |
-| V1-FIX-004 | reported | Generated summary appears above the editor instead of immediately becoming editable in the textarea. | Planned: `apps/web/src/App.vue`, `apps/web/test/App.test.ts`, docs workflow updates. | Pending | Root cause: draft preservation keeps the old textarea value after AI generation while the new summary renders in preview. |
-| V1-FIX-005 | reported | AI summary should be generated in Russian. | Planned: `apps/desktop-api/src/domain/ai/ai-service.ts`, backend AI tests, docs workflow updates. | Pending | Current summary prompt is English and does not require Russian output. |
-| V1-FIX-006 | reported | `Suggest tags` returns OpenRouter upstream error while summary generation works with the same settings. | Planned: `apps/desktop-api/src/integrations/openrouter/openrouter-client.ts`, `apps/desktop-api/src/domain/ai/ai-service.ts`, backend tests, docs workflow updates. | Pending | Logs show `ai.summary.generated` succeeds and `ai.tag_suggestions.failed` fails for the same configured model; needs request/response diagnostics and a more tolerant tag suggestion path. |
+| V1-FIX-004 | in_progress | Generated summary appears above the editor instead of immediately becoming editable in the textarea. | Planned: `apps/web/src/App.vue`, `apps/web/test/App.test.ts`, docs workflow updates. | Pending | Root cause: draft preservation keeps the old textarea value after AI generation while the new summary renders in preview. |
+| V1-FIX-005 | in_progress | AI summary should be generated in Russian. | Planned: `apps/desktop-api/src/domain/ai/ai-service.ts`, backend AI tests, docs workflow updates. | Pending | Current summary prompt is English and does not require Russian output. |
+| V1-FIX-006 | in_progress | `Suggest tags` returns OpenRouter upstream error while summary generation works with the same settings. | Planned: `apps/desktop-api/src/integrations/openrouter/openrouter-client.ts`, `apps/desktop-api/src/domain/ai/ai-service.ts`, backend tests, docs workflow updates. | Pending | Logs show `ai.summary.generated` succeeds and `ai.tag_suggestions.failed` fails for the same configured model; needs request/response diagnostics and a more tolerant tag suggestion path. |

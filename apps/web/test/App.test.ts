@@ -99,7 +99,9 @@ describe('App', () => {
 
     expect(fetch).toHaveBeenCalledWith('/api/v1/health');
     expect(wrapper.text()).toContain('Vue Guide');
-    expect(wrapper.text()).toContain('Useful summary');
+    expect((wrapper.get('[aria-label="Summary for Vue Guide"]').element as HTMLTextAreaElement).value).toBe(
+      'Useful summary'
+    );
     expect(wrapper.text()).toContain('frontend');
     expect(wrapper.get('[aria-label="Mark Vue Guide as new"]').classes()).toContain('status-active');
   });
@@ -280,7 +282,12 @@ describe('App', () => {
     await wrapper.get('[aria-label="Generate summary for Vue Guide"]').trigger('click');
     await flushPromises();
 
-    await vi.waitFor(() => expect(wrapper.text()).toContain('Generated AI summary'));
+    await vi.waitFor(() =>
+      expect((wrapper.get('[aria-label="Summary for Vue Guide"]').element as HTMLTextAreaElement).value).toBe(
+        'Generated AI summary'
+      )
+    );
+    expect(wrapper.find('.summary-preview').exists()).toBe(false);
     expect(wrapper.text()).not.toContain('or-v1-secret');
 
     await wrapper.get('[aria-label="Suggest tags for Vue Guide"]').trigger('click');
@@ -369,7 +376,11 @@ describe('App', () => {
       headers: { 'Content-Type': 'application/json' },
       method: 'PATCH'
     });
-    await vi.waitFor(() => expect(wrapper.text()).toContain('Generated with existing key'));
+    await vi.waitFor(() =>
+      expect((wrapper.get('[aria-label="Summary for Vue Guide"]').element as HTMLTextAreaElement).value).toBe(
+        'Generated with existing key'
+      )
+    );
   });
 
   it('attaches an existing tag when confirming a matching AI suggestion', async () => {
