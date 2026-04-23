@@ -49,7 +49,9 @@ describe('api client', () => {
     await saveChromeProfilePath('C:\\Chrome\\Default');
     await saveOpenRouterSettings({
       apiKey: 'or-v1-secret',
-      model: 'google/gemma-4-31b-it:free'
+      model: 'google/gemma-4-31b-it:free',
+      summaryPrompt: 'Summary prompt template.',
+      tagsPrompt: 'Tags prompt template.'
     });
     await generateSummary('itm_1');
     await suggestTags('itm_1');
@@ -77,7 +79,9 @@ describe('api client', () => {
       body: JSON.stringify({
         openRouter: {
           apiKey: 'or-v1-secret',
-          model: 'google/gemma-4-31b-it:free'
+          model: 'google/gemma-4-31b-it:free',
+          summaryPrompt: 'Summary prompt template.',
+          tagsPrompt: 'Tags prompt template.'
         }
       }),
       headers: { 'Content-Type': 'application/json' },

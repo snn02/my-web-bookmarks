@@ -274,11 +274,18 @@ export function createApp(options: CreateAppOptions = {}): Express {
 
       settings.updateOpenRouterSettings({
         apiKey: typeof openRouter.apiKey === 'string' ? openRouter.apiKey : undefined,
-        model: typeof openRouter.model === 'string' ? openRouter.model : undefined
+        model: typeof openRouter.model === 'string' ? openRouter.model : undefined,
+        summaryPrompt:
+          typeof openRouter.summaryPrompt === 'string' ? openRouter.summaryPrompt : undefined,
+        tagsPrompt: typeof openRouter.tagsPrompt === 'string' ? openRouter.tagsPrompt : undefined
       });
       logger.info('settings.openrouter.updated', {
         apiKeyProvided: typeof openRouter.apiKey === 'string' && openRouter.apiKey.length > 0,
-        model: typeof openRouter.model === 'string' ? openRouter.model : undefined
+        model: typeof openRouter.model === 'string' ? openRouter.model : undefined,
+        summaryPromptProvided:
+          typeof openRouter.summaryPrompt === 'string' && openRouter.summaryPrompt.length > 0,
+        tagsPromptProvided:
+          typeof openRouter.tagsPrompt === 'string' && openRouter.tagsPrompt.length > 0
       });
     }
 

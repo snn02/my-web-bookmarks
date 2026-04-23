@@ -1,4 +1,5 @@
 import { getDefaultModelId } from '@my-web-bookmarks/shared';
+import { DEFAULT_SUMMARY_PROMPT, DEFAULT_TAGS_PROMPT } from '../ai/ai-prompts';
 import type { AppDatabase } from '../../db/database';
 import { nowIso } from '../time';
 
@@ -6,6 +7,8 @@ export interface PublicSettings {
   openRouter: {
     apiKeyConfigured: boolean;
     model: string;
+    summaryPrompt: string;
+    tagsPrompt: string;
   };
   chromeProfilePath: string | null;
 }
@@ -13,10 +16,14 @@ export interface PublicSettings {
 export interface OpenRouterSettingsPatch {
   apiKey?: string;
   model?: string;
+  summaryPrompt?: string;
+  tagsPrompt?: string;
 }
 
 const OPENROUTER_API_KEY = 'openrouter_api_key';
 const OPENROUTER_MODEL = 'openrouter_model';
+const OPENROUTER_SUMMARY_PROMPT = 'openrouter_summary_prompt';
+const OPENROUTER_TAGS_PROMPT = 'openrouter_tags_prompt';
 const OPENROUTER_SUMMARY_MODEL_LEGACY = 'openrouter_summary_model';
 const OPENROUTER_TAGS_MODEL_LEGACY = 'openrouter_tags_model';
 const CHROME_PROFILE_PATH = 'chrome_profile_path';
@@ -63,6 +70,22 @@ export function createSettingsRepository(db: AppDatabase) {
         setSetting(OPENROUTER_MODEL, patch.model);
       }
     }
+
+    if (patch.summaryPrompt !== undefined) {
+      if (patch.summaryPrompt === '') {
+        deleteSetting(OPENROUTER_SUMMARY_PROMPT);
+      } else {
+        setSetting(OPENROUTER_SUMMARY_PROMPT, patch.summaryPrompt);
+      }
+    }
+
+    if (patch.tagsPrompt !== undefined) {
+      if (patch.tagsPrompt === '') {
+        deleteSetting(OPENROUTER_TAGS_PROMPT);
+      } else {
+        setSetting(OPENROUTER_TAGS_PROMPT, patch.tagsPrompt);
+      }
+    }
   }
 
   function getOpenRouterApiKey(): string | null {
@@ -87,12 +110,16 @@ export function createSettingsRepository(db: AppDatabase) {
       getSetting(OPENROUTER_SUMMARY_MODEL_LEGACY) ??
       getSetting(OPENROUTER_TAGS_MODEL_LEGACY) ??
       getDefaultModelId();
+    const summaryPrompt = getSetting(OPENROUTER_SUMMARY_PROMPT) ?? DEFAULT_SUMMARY_PROMPT;
+    const tagsPrompt = getSetting(OPENROUTER_TAGS_PROMPT) ?? DEFAULT_TAGS_PROMPT;
 
     return {
       chromeProfilePath: getChromeProfilePath(),
       openRouter: {
         apiKeyConfigured: Boolean(getOpenRouterApiKey()),
-        model
+        model,
+        summaryPrompt,
+        tagsPrompt
       }
     };
   }

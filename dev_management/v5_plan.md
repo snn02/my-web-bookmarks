@@ -31,13 +31,16 @@ Re-scoped on 2026-04-23 after manual testing and rollback decision.
 
 - Remove runtime page extraction from summary generation pipeline.
 - Build deterministic cleaned metadata context from item fields.
+- Add best-effort lightweight page-signal enrichment (`meta/og` fields and `h1`/`h2`) without full article extraction.
 - Update summary prompt to avoid guessing and constrain output to maximum 5 sentences in Russian.
+- Expose editable summary/tag prompt templates in settings with default prefill and safe fallback.
 - Keep readable OpenRouter upstream failures end-to-end.
 
 **Acceptance criteria**
 
 - Summary requests no longer fetch remote page content.
-- Summary output is metadata-grounded and capped to 5 sentences.
+- Summary output is metadata-grounded (stored fields + lightweight page signals) and capped to 5 sentences.
+- Settings returns editable `summaryPrompt` and `tagsPrompt` with default values when user has not overridden them.
 - No `content_unavailable` path remains for summary generation.
 - Existing AI error safety rules remain intact (no secret leakage, no raw JSON in UI).
 
@@ -61,7 +64,7 @@ Re-scoped on 2026-04-23 after manual testing and rollback decision.
 **Scope**
 
 - Keep existing summary as primary tag context.
-- Replace extraction fallback with cleaned metadata fallback.
+- Replace extraction fallback with cleaned metadata + lightweight page-signal fallback.
 - Do not auto-create or persist summary in tag-only flow.
 - Keep tag confirmation behavior unchanged (user must confirm before persistence).
 

@@ -138,7 +138,9 @@ Summary rules:
 {
   "openRouter": {
     "apiKeyConfigured": true,
-    "model": "google/gemma-4-31b-it:free"
+    "model": "google/gemma-4-31b-it:free",
+    "summaryPrompt": "Summarize a bookmarked web page for a personal reading inbox. Use only the provided metadata and page signals. Do not invent missing facts. If information is limited, provide a cautious short summary and explicitly mention uncertainty. Write in Russian. Keep the response within 5 sentences. Return only the summary text.",
+    "tagsPrompt": "Suggest 3 to 5 short lowercase tags for a bookmarked web page. Use only the provided context and do not invent missing facts. Return one tag per line. Use Russian when it fits the page topic."
   }
 }
 ```
@@ -148,6 +150,8 @@ Settings rules:
 - `GET /settings` never returns the raw API key
 - `PATCH /settings` may set or clear the API key
 - `model` is one shared model setting used for both summary generation and tag suggestion.
+- `summaryPrompt` and `tagsPrompt` are user-editable prompt templates for summary and tag generation.
+- If `summaryPrompt` or `tagsPrompt` is empty or missing, backend uses built-in defaults.
 - If `model` is missing, backend falls back to ranked default from product model table.
 
 ### Sync Status
@@ -439,7 +443,11 @@ Errors:
 ### `POST /items/:itemId/summary`
 
 Generates or regenerates the current summary with AI.
-The backend builds a cleaned metadata context (title, URL, domain, and existing summary when present) and asks the model for a grounded Russian summary.
+The backend builds a cleaned metadata context from stored item fields and best-effort lightweight page signals:
+- stored fields: `title`, `url`, `domain`, existing summary (when present);
+- page signals (when reachable): `meta description`, `og:title`, `og:description`, `keywords`, `author`, published time fields, plus page `h1`/`h2` headings.
+
+The backend does not run full article-content extraction in this flow; metadata/signal enrichment is best-effort and does not create a dedicated failure class when unavailable.
 
 Request body:
 
@@ -525,7 +533,7 @@ Rules:
 - Suggestions are not saved automatically
 - The frontend must explicitly attach confirmed tags through tag endpoints
 - If an item already has a stored summary, tag suggestions are generated from that summary context first.
-- If summary is missing, tag suggestions are generated from cleaned item metadata context without persisting a new summary.
+- If summary is missing, tag suggestions are generated from cleaned item metadata context enriched with the same best-effort page signals used by summary generation (meta/og fields and `h1`/`h2` headings), without persisting a new summary.
 - The backend asks OpenRouter for one short tag per line and tolerates JSON, comma-separated, or newline-separated model output.
 
 Errors:
@@ -584,7 +592,9 @@ Response `200 OK`:
 {
   "openRouter": {
     "apiKeyConfigured": true,
-    "model": "google/gemma-4-31b-it:free"
+    "model": "google/gemma-4-31b-it:free",
+    "summaryPrompt": "Summarize a bookmarked web page for a personal reading inbox. Use only the provided metadata and page signals. Do not invent missing facts. If information is limited, provide a cautious short summary and explicitly mention uncertainty. Write in Russian. Keep the response within 5 sentences. Return only the summary text.",
+    "tagsPrompt": "Suggest 3 to 5 short lowercase tags for a bookmarked web page. Use only the provided context and do not invent missing facts. Return one tag per line. Use Russian when it fits the page topic."
   }
 }
 ```
@@ -599,7 +609,9 @@ Request body:
 {
   "openRouter": {
     "apiKey": "or-v1-xxxxx",
-    "model": "google/gemma-4-31b-it:free"
+    "model": "google/gemma-4-31b-it:free",
+    "summaryPrompt": "Summarize a bookmarked web page for a personal reading inbox. Use only the provided metadata and page signals. Do not invent missing facts. If information is limited, provide a cautious short summary and explicitly mention uncertainty. Write in Russian. Keep the response within 5 sentences. Return only the summary text.",
+    "tagsPrompt": "Suggest 3 to 5 short lowercase tags for a bookmarked web page. Use only the provided context and do not invent missing facts. Return one tag per line. Use Russian when it fits the page topic."
   }
 }
 ```
@@ -610,7 +622,9 @@ Response `200 OK`:
 {
   "openRouter": {
     "apiKeyConfigured": true,
-    "model": "google/gemma-4-31b-it:free"
+    "model": "google/gemma-4-31b-it:free",
+    "summaryPrompt": "Summarize a bookmarked web page for a personal reading inbox. Use only the provided metadata and page signals. Do not invent missing facts. If information is limited, provide a cautious short summary and explicitly mention uncertainty. Write in Russian. Keep the response within 5 sentences. Return only the summary text.",
+    "tagsPrompt": "Suggest 3 to 5 short lowercase tags for a bookmarked web page. Use only the provided context and do not invent missing facts. Return one tag per line. Use Russian when it fits the page topic."
   }
 }
 ```
@@ -620,6 +634,9 @@ Rules:
 - `openRouter.apiKey` is optional in patch requests
 - Sending an empty string for `openRouter.apiKey` clears the saved key
 - `openRouter.model` controls both summary and tag generation model choice.
+- `openRouter.summaryPrompt` controls summary-generation instruction template.
+- `openRouter.tagsPrompt` controls tag-suggestion instruction template.
+- Sending an empty string for `openRouter.summaryPrompt` or `openRouter.tagsPrompt` resets that prompt to backend default.
 - The app remains usable without OpenRouter configuration; only AI endpoints fail
 
 ## Out of Scope for V1

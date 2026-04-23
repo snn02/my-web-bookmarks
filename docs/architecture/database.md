@@ -116,6 +116,8 @@ Expected settings:
 
 - `openrouter_api_key`
 - `openrouter_model`
+- `openrouter_summary_prompt`
+- `openrouter_tags_prompt`
 - `chrome_profile_path`
 
 Notes:

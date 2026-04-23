@@ -22,7 +22,7 @@ These scenarios mirror the lifecycle checks introduced after Iteration 4 and Ite
 
 - Start backend and web UI.
 - Confirm the app opens in `Inbox` view and `Settings` is accessible from the top switch.
-- Open `Settings` and verify `Chrome profile path`, OpenRouter API key field, and one model dropdown are present.
+- Open `Settings` and verify `Chrome profile path`, OpenRouter API key field, one model dropdown, `Summary prompt`, and `Tags prompt` are present.
 - Return to `Inbox` and verify those settings controls are not present there.
 - Leave Chrome profile path empty.
 - Press `Sync`.
@@ -61,11 +61,12 @@ These scenarios mirror the lifecycle checks introduced after Iteration 4 and Ite
 - Expected result: AI action reaches a visible failure state and manual bookmark workflows still work.
 - Return to `Settings`.
 - Enter OpenRouter API key and choose one model.
+- Optionally edit `Summary prompt` and `Tags prompt`.
 - Press `Save AI`.
-- Expected result: a visible success confirmation appears.
+- Expected result: a visible success confirmation appears and edited prompt values stay visible after save.
 - Return to `Inbox`.
 - Press `Generate summary`.
-- Expected result: button shows `Generating...` while running, then generated Russian summary (up to 5 sentences, grounded in item metadata) appears directly in the editable summary field, or the UI shows a visible upstream error.
+- Expected result: button shows `Generating...` while running, then generated Russian summary (up to 5 sentences, grounded in item metadata plus best-effort page signals: meta/og fields and `h1`/`h2`) appears directly in the editable summary field, or the UI shows a visible upstream error.
 - If OpenRouter returns `429`, expected result: the UI says the OpenRouter rate limit was reached and suggests waiting or choosing another model.
 - Press `Suggest tags`.
 - Expected result: button shows `Suggesting...` while running; short tag suggestions appear but are not persisted.

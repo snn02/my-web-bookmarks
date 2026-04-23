@@ -58,6 +58,8 @@ const chromeProfilePath = ref('');
 const openRouterApiKey = ref('');
 const openRouterConfigured = ref(false);
 const openRouterModel = ref('');
+const openRouterSummaryPrompt = ref('');
+const openRouterTagsPrompt = ref('');
 const syncStatus = ref<SyncStatus | null>(null);
 const syncInProgress = ref(false);
 const syncPhase = ref<OperationPhase>('idle');
@@ -117,6 +119,8 @@ async function loadInitialData(): Promise<void> {
     chromeProfilePath.value = settings.chromeProfilePath ?? '';
     openRouterConfigured.value = settings.openRouter.apiKeyConfigured;
     openRouterModel.value = normalizeModelSelection(settings.openRouter.model);
+    openRouterSummaryPrompt.value = settings.openRouter.summaryPrompt;
+    openRouterTagsPrompt.value = settings.openRouter.tagsPrompt;
     syncStatus.value = status;
     syncSummaryDrafts();
   } catch (error) {
@@ -211,11 +215,15 @@ async function saveAiSettings(): Promise<void> {
     const useAutoModel = openRouterModel.value === '';
     const openRouterPatch = {
       ...(openRouterApiKey.value.trim() ? { apiKey: openRouterApiKey.value.trim() } : {}),
-      model: useAutoModel ? '' : openRouterModel.value
+      model: useAutoModel ? '' : openRouterModel.value,
+      summaryPrompt: openRouterSummaryPrompt.value.trim() ? openRouterSummaryPrompt.value : '',
+      tagsPrompt: openRouterTagsPrompt.value.trim() ? openRouterTagsPrompt.value : ''
     };
     const settings = await saveOpenRouterSettings(openRouterPatch);
     openRouterConfigured.value = settings.openRouter.apiKeyConfigured;
     openRouterModel.value = useAutoModel ? '' : normalizeModelSelection(settings.openRouter.model);
+    openRouterSummaryPrompt.value = settings.openRouter.summaryPrompt;
+    openRouterTagsPrompt.value = settings.openRouter.tagsPrompt;
     openRouterApiKey.value = '';
     showNotice('success', 'AI settings saved.');
   } catch (error) {
@@ -697,6 +705,22 @@ function showNotice(type: NoticeType, message: string): void {
             </option>
           </select>
         </label>
+        <label class="field-stack field-stack-wide">
+          <span class="field-label">Summary prompt</span>
+          <Textarea
+            v-model="openRouterSummaryPrompt"
+            aria-label="OpenRouter summary prompt"
+            rows="4"
+          />
+        </label>
+        <label class="field-stack field-stack-wide">
+          <span class="field-label">Tags prompt</span>
+          <Textarea
+            v-model="openRouterTagsPrompt"
+            aria-label="OpenRouter tags prompt"
+            rows="4"
+          />
+        </label>
         <Button aria-label="Save OpenRouter settings" type="button" @click="saveAiSettings">Save AI</Button>
         <span class="sync-status">OpenRouter: {{ openRouterConfigured ? 'configured' : 'not configured' }}</span>
       </section>
@@ -760,6 +784,10 @@ function showNotice(type: NoticeType, message: string): void {
 .summary-row {
   justify-content: flex-start;
   flex-wrap: wrap;
+}
+
+.settings-band {
+  align-items: flex-end;
 }
 
 .topbar-right {
@@ -864,6 +892,10 @@ h2 {
   flex-direction: column;
   gap: 6px;
   min-width: min(360px, 100%);
+}
+
+.field-stack-wide {
+  flex: 1 1 100%;
 }
 
 .field-label {

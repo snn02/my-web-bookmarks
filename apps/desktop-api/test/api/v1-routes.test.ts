@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
+import { DEFAULT_SUMMARY_PROMPT, DEFAULT_TAGS_PROMPT } from '../../src/domain/ai/ai-prompts';
 import { createApp } from '../../src/app';
 import { createInMemoryDatabase, initializeDatabase } from '../../src/db/database';
 import { createItemRepository } from '../../src/domain/items/item-repository';
@@ -424,10 +425,10 @@ describe('summaries API', () => {
     expect(JSON.stringify(openRouterCall?.[1])).toContain('Stored summary context.');
   });
 
-  it('uses metadata context for tag suggestions when summary is missing and does not persist summary', async () => {
+  it('uses metadata and lightweight page signals for tag suggestions when summary is missing and does not persist summary', async () => {
     const fetchMock = createHybridFetchMock({
       pageHtml:
-        '<html><body><article><h1>Tags from content</h1><p>Extracted fallback text for tags.</p></article></body></html>',
+        '<html><head><meta name=\"description\" content=\"1C automation and AI tooling\" /></head><body><article><h1>Tags from content</h1><h2>MCP integration</h2></article></body></html>',
       openRouterContent: '["fallback-context"]'
     });
     const { app, items, settings, summaries } = createApiTestContext(fetchMock as unknown as typeof fetch);
@@ -451,7 +452,9 @@ describe('summaries API', () => {
       ([url]) => url === 'https://openrouter.ai/api/v1/chat/completions'
     );
     expect(JSON.stringify(openRouterCall?.[1])).toContain('Title: No summary tags');
-    expect(JSON.stringify(openRouterCall?.[1])).not.toContain('Extracted fallback text for tags.');
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('Meta description: 1C automation and AI tooling');
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('H1 headings: Tags from content');
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('H2 headings: MCP integration');
   });
 
   it('maps OpenRouter failures to upstream_error', async () => {
@@ -530,10 +533,10 @@ describe('summaries API', () => {
     expect(response.body.error.code).toBe('upstream_error');
   });
 
-  it('builds summary prompt from cleaned metadata and avoids page fetch calls', async () => {
+  it('builds summary prompt from cleaned metadata plus lightweight page signals', async () => {
     const fetchMock = createHybridFetchMock({
       pageHtml:
-        '<html><body><article><h1>Grounded title</h1><p>Grounded content for summary extraction.</p></article></body></html>',
+        '<html><head><meta name=\"description\" content=\"AI for 1C development\" /><meta property=\"og:title\" content=\"OG 1C AI article\" /><meta property=\"og:description\" content=\"OG summary snippet\" /><meta name=\"keywords\" content=\"1C,ai,mcp\" /><meta name=\"author\" content=\"Infostart Team\" /><meta property=\"article:published_time\" content=\"2026-04-24T10:00:00Z\" /></head><body><article><h1>Grounded title</h1><h2>Tooling overview</h2></article></body></html>',
       openRouterContent: 'Grounded summary output.'
     });
     const { app, items, settings } = createApiTestContext(fetchMock as unknown as typeof fetch);
@@ -557,7 +560,44 @@ describe('summaries API', () => {
     expect(openRouterCall).toBeDefined();
     expect(JSON.stringify(openRouterCall?.[1])).toContain('Title: Grounding article');
     expect(JSON.stringify(openRouterCall?.[1])).toContain('within 5 sentences');
-    expect(calls.some(([url]) => url === item.url)).toBe(false);
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('Meta description: AI for 1C development');
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('OG title: OG 1C AI article');
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('OG description: OG summary snippet');
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('Keywords: 1C,ai,mcp');
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('Author: Infostart Team');
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('Published time: 2026-04-24T10:00:00Z');
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('H1 headings: Grounded title');
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('H2 headings: Tooling overview');
+    expect(calls.some(([url]) => url === item.url)).toBe(true);
+  });
+
+  it('falls back to stored metadata-only context when page signals are unavailable', async () => {
+    const fetchMock = createHybridFetchMock({
+      pageHtml: 'forbidden',
+      pageStatus: 403,
+      openRouterContent: 'Fallback summary output.'
+    });
+    const { app, items, settings } = createApiTestContext(fetchMock as unknown as typeof fetch);
+    settings.updateOpenRouterSettings({
+      apiKey: 'or-v1-secret',
+      model: 'openai/gpt-5-mini'
+    });
+    const item = items.upsertImportedItem({
+      sourceType: 'chrome_bookmark',
+      title: 'Signals unavailable article',
+      url: 'https://example.com/signals-unavailable'
+    });
+
+    const response = await request(app).post(`/api/v1/items/${item.id}/summary`).send({});
+
+    expect(response.status).toBe(200);
+    const calls = fetchMock.mock.calls as unknown as [string, RequestInit][];
+    const openRouterCall = calls.find(
+      ([url]) => url === 'https://openrouter.ai/api/v1/chat/completions'
+    );
+    expect(openRouterCall).toBeDefined();
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('Title: Signals unavailable article');
+    expect(JSON.stringify(openRouterCall?.[1])).not.toContain('Meta description:');
   });
 });
 
@@ -577,7 +617,9 @@ describe('settings API', () => {
       chromeProfilePath: null,
       openRouter: {
         apiKeyConfigured: true,
-        model: 'google/gemma-4-31b-it:free'
+        model: 'google/gemma-4-31b-it:free',
+        summaryPrompt: DEFAULT_SUMMARY_PROMPT,
+        tagsPrompt: DEFAULT_TAGS_PROMPT
       }
     });
     expect(JSON.stringify(patchResponse.body)).not.toContain('or-v1-secret');
@@ -601,6 +643,34 @@ describe('settings API', () => {
 
     expect(patchResponse.status).toBe(200);
     expect(patchResponse.body.openRouter.model).toBe('openai/gpt-oss-120b:free');
+    expect(patchResponse.body.openRouter.summaryPrompt).toBe(DEFAULT_SUMMARY_PROMPT);
+    expect(patchResponse.body.openRouter.tagsPrompt).toBe(DEFAULT_TAGS_PROMPT);
+  });
+
+  it('stores OpenRouter prompt templates and resets to defaults when cleared', async () => {
+    const { app } = createApiTestContext();
+
+    const custom = await request(app).patch('/api/v1/settings').send({
+      openRouter: {
+        summaryPrompt: 'Custom summary prompt',
+        tagsPrompt: 'Custom tags prompt'
+      }
+    });
+
+    expect(custom.status).toBe(200);
+    expect(custom.body.openRouter.summaryPrompt).toBe('Custom summary prompt');
+    expect(custom.body.openRouter.tagsPrompt).toBe('Custom tags prompt');
+
+    const reset = await request(app).patch('/api/v1/settings').send({
+      openRouter: {
+        summaryPrompt: '',
+        tagsPrompt: ''
+      }
+    });
+
+    expect(reset.status).toBe(200);
+    expect(reset.body.openRouter.summaryPrompt).toBe(DEFAULT_SUMMARY_PROMPT);
+    expect(reset.body.openRouter.tagsPrompt).toBe(DEFAULT_TAGS_PROMPT);
   });
 
   it('patches and returns saved Chrome profile path without default detection', async () => {

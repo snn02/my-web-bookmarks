@@ -4,6 +4,18 @@ import PrimeVue from 'primevue/config';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App.vue';
 
+const DEFAULT_SUMMARY_PROMPT = 'Summarize using provided page metadata only.';
+const DEFAULT_TAGS_PROMPT = 'Generate tags from the provided summary only.';
+
+function openRouterSettings(apiKeyConfigured: boolean, model: string) {
+  return {
+    apiKeyConfigured,
+    model,
+    summaryPrompt: DEFAULT_SUMMARY_PROMPT,
+    tagsPrompt: DEFAULT_TAGS_PROMPT
+  };
+}
+
 function ok(body: unknown) {
   return {
     ok: true,
@@ -64,7 +76,7 @@ function createInitialResponses() {
       ]
     }),
     ok({
-      openRouter: { apiKeyConfigured: false, model: 'google/gemma-4-31b-it:free' },
+      openRouter: openRouterSettings(false, 'google/gemma-4-31b-it:free'),
       chromeProfilePath: 'C:\\Chrome\\Default'
     }),
     ok({
@@ -182,6 +194,14 @@ describe('App', () => {
     expect(wrapper.text()).toContain('API key');
     expect(wrapper.text()).toContain('AI model');
     expect(wrapper.find('[aria-label="OpenRouter model"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="OpenRouter summary prompt"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="OpenRouter tags prompt"]').exists()).toBe(true);
+    expect((wrapper.get('[aria-label="OpenRouter summary prompt"]').element as HTMLTextAreaElement).value).toBe(
+      DEFAULT_SUMMARY_PROMPT
+    );
+    expect((wrapper.get('[aria-label="OpenRouter tags prompt"]').element as HTMLTextAreaElement).value).toBe(
+      DEFAULT_TAGS_PROMPT
+    );
     expect(wrapper.text()).toContain('(5/5)');
     expect(wrapper.find('[aria-label="Search bookmarks"]').exists()).toBe(false);
   });
@@ -415,7 +435,7 @@ describe('App', () => {
     fetchMock
       .mockResolvedValueOnce(
         ok({
-          openRouter: { apiKeyConfigured: true, model: 'openai/gpt-5-mini' },
+          openRouter: openRouterSettings(true, 'openai/gpt-5-mini'),
           chromeProfilePath: 'C:\\Chrome\\Default'
         })
       )
@@ -429,7 +449,7 @@ describe('App', () => {
       )
       .mockResolvedValueOnce(
         ok({
-          openRouter: { apiKeyConfigured: true, model: 'openai/gpt-5-mini' },
+          openRouter: openRouterSettings(true, 'openai/gpt-5-mini'),
           chromeProfilePath: 'C:\\Chrome\\Default'
         })
       )
@@ -488,7 +508,7 @@ describe('App', () => {
     fetchMock
       .mockResolvedValueOnce(
         ok({
-          openRouter: { apiKeyConfigured: false, model: 'google/gemma-4-31b-it:free' },
+          openRouter: openRouterSettings(false, 'google/gemma-4-31b-it:free'),
           chromeProfilePath: 'C:\\Chrome\\Default'
         })
       )
@@ -510,7 +530,7 @@ describe('App', () => {
     const fetchMock = vi.fn();
     const initialResponses = createInitialResponses();
     initialResponses[3] = ok({
-      openRouter: { apiKeyConfigured: true, model: 'openai/gpt-5-mini' },
+      openRouter: openRouterSettings(true, 'openai/gpt-5-mini'),
       chromeProfilePath: 'C:\\Chrome\\Default'
     });
     for (const response of initialResponses) {
@@ -519,7 +539,7 @@ describe('App', () => {
     fetchMock
       .mockResolvedValueOnce(
         ok({
-          openRouter: { apiKeyConfigured: true, model: 'openai/gpt-5-mini' },
+          openRouter: openRouterSettings(true, 'openai/gpt-5-mini'),
           chromeProfilePath: 'C:\\Chrome\\Default'
         })
       )
@@ -546,6 +566,8 @@ describe('App', () => {
       body: JSON.stringify({
         openRouter: {
           model: '',
+          summaryPrompt: DEFAULT_SUMMARY_PROMPT,
+          tagsPrompt: DEFAULT_TAGS_PROMPT
         }
       }),
       headers: { 'Content-Type': 'application/json' },
@@ -573,7 +595,7 @@ describe('App', () => {
     fetchMock
       .mockResolvedValueOnce(
         ok({
-          openRouter: { apiKeyConfigured: true, model: 'openai/gpt-5-mini' },
+          openRouter: openRouterSettings(true, 'openai/gpt-5-mini'),
           chromeProfilePath: 'C:\\Chrome\\Default'
         })
       )

@@ -101,3 +101,45 @@ This log is the active implementation journal for V5.
 - Remove extraction-dependent code paths and `content_unavailable` behavior from AI summary/tag flows.
 - Simplify settings repository/API/UI contract back to one model field.
 - Update tests and docs to the metadata-only grounding behavior.
+
+## 2026-04-24 - Metadata Enrichment Scope Approved
+
+**Decision**
+
+- Keep metadata-first summary/tag generation.
+- Add best-effort lightweight page-signal enrichment to AI context:
+  - `meta description`, `og:title`, `og:description`, `keywords`, `author`, published-time fields;
+  - all visible `h1`/`h2` headings.
+- Do not reintroduce full article extraction.
+
+**Why**
+
+- Metadata-only context can be too sparse for some models and trigger low-information refusals.
+- Lightweight signals improve grounding without returning to brittle full-content extraction.
+
+**Implementation impact**
+
+- AI context builder needs optional network fetch + HTML signal parsing with graceful fallback.
+- Prompt should explicitly instruct concise, uncertainty-aware summary when signals are sparse.
+- Tests should verify signal extraction wiring and fallback behavior when signal fetch fails.
+
+## 2026-04-24 - Prompt Templates Exposed In Settings
+
+**Decision**
+
+- Add two user-editable settings fields:
+  - summary generation prompt template;
+  - tag suggestion prompt template.
+- Prefill both fields with current built-in defaults.
+- Keep backend defaults as fallback when saved value is empty.
+
+**Why**
+
+- Prompt tuning must be debuggable without code edits.
+- Fast iteration on weak-context behavior is easier when prompts are visible and editable in UI.
+
+**Implementation impact**
+
+- Extend settings API contract and repository keys for prompt templates.
+- Use saved prompt templates in AI service request composition.
+- Update manual smoke and API docs for new settings fields and fallback behavior.

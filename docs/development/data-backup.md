@@ -11,6 +11,8 @@ The app is local-first. Chrome remains the source for imported bookmark input, w
 - AI settings are stored in `settings` key-value rows, including:
   - `openrouter_api_key`
   - `openrouter_model`
+  - `openrouter_summary_prompt`
+  - `openrouter_tags_prompt`
 
 ## Backing Up SQLite
 

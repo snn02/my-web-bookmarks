@@ -48,6 +48,8 @@ export interface PublicSettings {
   openRouter: {
     apiKeyConfigured: boolean;
     model: string;
+    summaryPrompt: string;
+    tagsPrompt: string;
   };
   chromeProfilePath?: string | null;
 }
@@ -65,6 +67,8 @@ export interface SyncStatus {
 export interface OpenRouterSettingsPatch {
   apiKey?: string;
   model?: string;
+  summaryPrompt?: string;
+  tagsPrompt?: string;
 }
 
 export interface TagSuggestion {

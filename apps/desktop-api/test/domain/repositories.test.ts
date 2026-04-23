@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createInMemoryDatabase, initializeDatabase } from '../../src/db/database';
+import { DEFAULT_SUMMARY_PROMPT, DEFAULT_TAGS_PROMPT } from '../../src/domain/ai/ai-prompts';
 import { createItemRepository } from '../../src/domain/items/item-repository';
 import { createSettingsRepository } from '../../src/domain/settings/settings-repository';
 import { createSummaryRepository } from '../../src/domain/summaries/summary-repository';
@@ -129,7 +130,9 @@ describe('settings repository', () => {
       chromeProfilePath: null,
       openRouter: {
         apiKeyConfigured: true,
-        model: 'google/gemma-4-31b-it:free'
+        model: 'google/gemma-4-31b-it:free',
+        summaryPrompt: DEFAULT_SUMMARY_PROMPT,
+        tagsPrompt: DEFAULT_TAGS_PROMPT
       }
     });
 
@@ -143,6 +146,28 @@ describe('settings repository', () => {
     settings.updateOpenRouterSettings({ model: 'openai/gpt-oss-120b:free' });
 
     expect(settings.getPublicSettings().openRouter.model).toBe('openai/gpt-oss-120b:free');
+    expect(settings.getPublicSettings().openRouter.summaryPrompt).toBe(DEFAULT_SUMMARY_PROMPT);
+    expect(settings.getPublicSettings().openRouter.tagsPrompt).toBe(DEFAULT_TAGS_PROMPT);
+  });
+
+  it('stores prompts and resets them to defaults when cleared', () => {
+    const { settings } = createRepositories();
+
+    settings.updateOpenRouterSettings({
+      summaryPrompt: 'Custom summary prompt.',
+      tagsPrompt: 'Custom tags prompt.'
+    });
+
+    expect(settings.getPublicSettings().openRouter.summaryPrompt).toBe('Custom summary prompt.');
+    expect(settings.getPublicSettings().openRouter.tagsPrompt).toBe('Custom tags prompt.');
+
+    settings.updateOpenRouterSettings({
+      summaryPrompt: '',
+      tagsPrompt: ''
+    });
+
+    expect(settings.getPublicSettings().openRouter.summaryPrompt).toBe(DEFAULT_SUMMARY_PROMPT);
+    expect(settings.getPublicSettings().openRouter.tagsPrompt).toBe(DEFAULT_TAGS_PROMPT);
   });
 
   it('stores and clears the configured Chrome profile path', () => {
