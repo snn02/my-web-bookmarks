@@ -6,7 +6,7 @@ The system is a desktop-first, local-first application for importing Chrome book
 
 ## High-Level Modules
 
-- `web`: Vue 3 frontend application
+- `web`: Vue 3 frontend application with PrimeVue component layer
 - `desktop-api`: Node.js backend running locally
 - `shared`: shared types, DTOs, and constants
 - `sqlite`: local persistence for items, tags, summaries, and settings
@@ -14,6 +14,12 @@ The system is a desktop-first, local-first application for importing Chrome book
 ## Core Principle
 
 The frontend uses a stable backend contract defined separately from the local implementation.
+
+## Frontend UI Composition
+
+- `apps/web/src/main.ts` configures PrimeVue globally with a light theme preset.
+- UI interactions and business behavior remain implemented in local Vue components (`App.vue`), while visual controls are rendered through PrimeVue components.
+- Visual modernization should be done via component/styling changes in the web app, without changing API contracts or backend behavior.
 
 ## Main Flows
 

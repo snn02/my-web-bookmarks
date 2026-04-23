@@ -13,10 +13,17 @@ Local desktop-first app for managing Chrome bookmarks: import, statuses, tags, a
 
 ## Tech Stack
 
-- Frontend: Vue 3 + Vite + TypeScript
+- Frontend: Vue 3 + Vite + TypeScript + PrimeVue
 - Backend: Node.js + Express + TypeScript
 - Monorepo: npm workspaces
 - Storage: SQLite (local)
+
+## UI Layer (PrimeVue)
+
+- PrimeVue is used as the primary UI component layer in `apps/web`.
+- PrimeVue plugin and light theme preset are configured in `apps/web/src/main.ts`.
+- Current app uses PrimeVue components in the main UI (`Button`, `InputText`, `Textarea`) in `apps/web/src/App.vue`.
+- When adding new UI controls, prefer PrimeVue components first to keep look-and-feel consistent.
 
 ## Requirements
 
