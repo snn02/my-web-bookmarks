@@ -1,6 +1,8 @@
 import type { createItemRepository } from '../items/item-repository';
 import type { createSettingsRepository } from '../settings/settings-repository';
 import type { createSummaryRepository } from '../summaries/summary-repository';
+import { lookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
 import {
   createOpenRouterClient,
   OpenRouterRequestError,
@@ -8,10 +10,16 @@ import {
 } from '../../integrations/openrouter/openrouter-client';
 
 const DEFAULT_OPENROUTER_MODEL = 'openai/gpt-5-mini';
+const EXTRACTION_TIMEOUT_MS = 8_000;
+const EXTRACTION_MAX_BYTES = 400_000;
+const EXTRACTION_MAX_REDIRECTS = 5;
+
+export type HostnameResolver = (hostname: string) => Promise<string[]>;
 
 export interface AiServiceDependencies {
   fetchImpl?: typeof fetch;
   items: ReturnType<typeof createItemRepository>;
+  resolveHostname?: HostnameResolver;
   settings: ReturnType<typeof createSettingsRepository>;
   summaries: ReturnType<typeof createSummaryRepository>;
 }
@@ -41,7 +49,13 @@ export interface TagSuggestion {
   name: string;
 }
 
-export function createAiService({ fetchImpl, items, settings, summaries }: AiServiceDependencies) {
+export function createAiService({
+  fetchImpl,
+  items,
+  resolveHostname = defaultResolveHostname,
+  settings,
+  summaries
+}: AiServiceDependencies) {
   async function generateSummary(itemId: string) {
     const item = items.getItem(itemId);
     if (!item) {
@@ -52,7 +66,7 @@ export function createAiService({ fetchImpl, items, settings, summaries }: AiSer
       throw new AiNotConfiguredError();
     }
 
-    const extractedContent = await extractPageContent(item.url, fetchImpl ?? fetch);
+    const extractedContent = await extractPageContent(item.url, fetchImpl ?? fetch, resolveHostname);
     const model = settings.getPublicSettings().openRouter.model ?? DEFAULT_OPENROUTER_MODEL;
     const content = await completeWithOpenRouter([
       {
@@ -82,13 +96,16 @@ export function createAiService({ fetchImpl, items, settings, summaries }: AiSer
     const tagContext =
       item.summary?.content?.trim()
         ? buildTagContextFromSummary(item)
-        : buildTagContextFromExtractedContent(item, await extractPageContent(item.url, fetchImpl ?? fetch));
+        : buildTagContextFromExtractedContent(
+            item,
+            await extractPageContent(item.url, fetchImpl ?? fetch, resolveHostname)
+          );
 
     const content = await completeWithOpenRouter([
       {
         role: 'system',
         content:
-          'Suggest 3 to 5 short lowercase tags for a bookmarked web page. Return one tag per line. Use Russian when it fits the page topic.'
+          'Suggest 3 to 5 short lowercase tags for a bookmarked web page. Use only the provided context and do not invent missing facts. Return one tag per line. Use Russian when it fits the page topic.'
       },
       {
         role: 'user',
@@ -121,15 +138,6 @@ export function createAiService({ fetchImpl, items, settings, summaries }: AiSer
     generateSummary,
     suggestTags
   };
-}
-
-function buildItemContext(item: NonNullable<ReturnType<ReturnType<typeof createItemRepository>['getItem']>>): string {
-  return [
-    `Title: ${item.title}`,
-    `URL: ${item.url}`,
-    `Domain: ${item.domain}`,
-    `Current summary: ${item.summary?.content ?? 'none'}`
-  ].join('\n');
 }
 
 function buildSummaryContext(
@@ -172,20 +180,73 @@ function buildTagContextFromExtractedContent(
   ].join('\n');
 }
 
-async function extractPageContent(url: string, fetchImpl: typeof fetch): Promise<string> {
-  const parsed = safeParseUrl(url);
-  if (!parsed || !isAllowedProtocol(parsed.protocol) || isBlockedHostname(parsed.hostname)) {
+async function extractPageContent(
+  url: string,
+  fetchImpl: typeof fetch,
+  resolveHostname: HostnameResolver
+): Promise<string> {
+  return extractPageContentWithRedirects({
+    fetchImpl,
+    redirectCount: 0,
+    resolveHostname,
+    url
+  });
+}
+
+async function extractPageContentWithRedirects({
+  fetchImpl,
+  redirectCount,
+  resolveHostname,
+  url
+}: {
+  fetchImpl: typeof fetch;
+  redirectCount: number;
+  resolveHostname: HostnameResolver;
+  url: string;
+}): Promise<string> {
+  if (redirectCount > EXTRACTION_MAX_REDIRECTS) {
     throw new ContentUnavailableError();
   }
+
+  const parsed = safeParseUrl(url);
+  if (!parsed || !isAllowedProtocol(parsed.protocol) || (await isBlockedHost(parsed.hostname, resolveHostname))) {
+    throw new ContentUnavailableError();
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), EXTRACTION_TIMEOUT_MS);
 
   let response: Response;
   try {
     response = await fetchImpl(parsed.toString(), {
       method: 'GET',
-      redirect: 'follow'
+      redirect: 'manual',
+      signal: controller.signal
     });
   } catch {
+    clearTimeout(timeoutId);
     throw new ContentUnavailableError();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (isRedirectStatus(response.status)) {
+    const location = response.headers.get('location');
+    if (!location) {
+      throw new ContentUnavailableError();
+    }
+
+    const nextUrl = safeResolveRedirectUrl(parsed, location);
+    if (!nextUrl) {
+      throw new ContentUnavailableError();
+    }
+
+    return extractPageContentWithRedirects({
+      fetchImpl,
+      redirectCount: redirectCount + 1,
+      resolveHostname,
+      url: nextUrl
+    });
   }
 
   if (!response.ok) {
@@ -193,7 +254,7 @@ async function extractPageContent(url: string, fetchImpl: typeof fetch): Promise
   }
 
   const contentType = response.headers.get('content-type') ?? '';
-  const raw = await response.text();
+  const raw = await readResponseTextWithLimit(response, EXTRACTION_MAX_BYTES);
   const normalized = preprocessExtractedContent(
     contentType.includes('html') ? extractTextFromHtml(raw) : raw
   );
@@ -201,6 +262,15 @@ async function extractPageContent(url: string, fetchImpl: typeof fetch): Promise
     throw new ContentUnavailableError();
   }
   return normalized;
+}
+
+async function defaultResolveHostname(hostname: string): Promise<string[]> {
+  try {
+    const addresses = await lookup(hostname, { all: true, verbatim: true });
+    return addresses.map((entry) => entry.address);
+  } catch {
+    return [];
+  }
 }
 
 function safeParseUrl(value: string): URL | null {
@@ -215,7 +285,16 @@ function isAllowedProtocol(protocol: string): boolean {
   return protocol === 'http:' || protocol === 'https:';
 }
 
-function isBlockedHostname(hostname: string): boolean {
+async function isBlockedHost(hostname: string, resolveHostname: HostnameResolver): Promise<boolean> {
+  if (isBlockedHostnameLiteral(hostname)) {
+    return true;
+  }
+
+  const resolved = await resolveHostname(hostname);
+  return resolved.some((address) => isBlockedIpAddress(address));
+}
+
+function isBlockedHostnameLiteral(hostname: string): boolean {
   const host = hostname.toLowerCase();
   if (host === 'localhost' || host === '::1') {
     return true;
@@ -227,6 +306,91 @@ function isBlockedHostname(hostname: string): boolean {
 
   const private172 = /^172\.(1[6-9]|2\d|3[0-1])\./;
   return private172.test(host);
+}
+
+function isBlockedIpAddress(address: string): boolean {
+  const normalized = address.trim().toLowerCase();
+  const ipType = isIP(normalized);
+  if (ipType === 4) {
+    return (
+      normalized.startsWith('127.') ||
+      normalized.startsWith('10.') ||
+      normalized.startsWith('192.168.') ||
+      normalized.startsWith('169.254.') ||
+      /^172\.(1[6-9]|2\d|3[0-1])\./.test(normalized)
+    );
+  }
+
+  if (ipType === 6) {
+    return (
+      normalized === '::1' ||
+      normalized.startsWith('fc') ||
+      normalized.startsWith('fd') ||
+      normalized.startsWith('fe8') ||
+      normalized.startsWith('fe9') ||
+      normalized.startsWith('fea') ||
+      normalized.startsWith('feb')
+    );
+  }
+
+  return false;
+}
+
+function isRedirectStatus(status: number): boolean {
+  return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
+}
+
+function safeResolveRedirectUrl(current: URL, location: string): string | null {
+  try {
+    return new URL(location, current).toString();
+  } catch {
+    return null;
+  }
+}
+
+async function readResponseTextWithLimit(response: Response, maxBytes: number): Promise<string> {
+  const headerLength = response.headers.get('content-length');
+  if (headerLength) {
+    const declared = Number.parseInt(headerLength, 10);
+    if (!Number.isNaN(declared) && declared > maxBytes) {
+      throw new ContentUnavailableError();
+    }
+  }
+
+  if (!response.body) {
+    const fallbackText = await response.text();
+    if (Buffer.byteLength(fallbackText, 'utf8') > maxBytes) {
+      throw new ContentUnavailableError();
+    }
+    return fallbackText;
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+
+    if (value) {
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes) {
+        throw new ContentUnavailableError();
+      }
+      chunks.push(value);
+    }
+  }
+
+  const merged = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return new TextDecoder().decode(merged);
 }
 
 function extractTextFromHtml(html: string): string {

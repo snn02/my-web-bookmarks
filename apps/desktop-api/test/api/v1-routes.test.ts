@@ -7,6 +7,7 @@ import { createSettingsRepository } from '../../src/domain/settings/settings-rep
 import { createSummaryRepository } from '../../src/domain/summaries/summary-repository';
 import { createTagRepository } from '../../src/domain/tags/tag-repository';
 import type { AppLogger } from '../../src/logging/app-logger';
+import type { HostnameResolver } from '../../src/domain/ai/ai-service';
 
 function createOpenRouterFetchMock(content: string, status = 200) {
   return vi.fn(async (input: RequestInfo | URL) => {
@@ -73,7 +74,10 @@ function createHybridFetchMock(options: {
   });
 }
 
-function createApiTestContext(openRouterFetch?: typeof fetch) {
+function createApiTestContext(
+  openRouterFetch?: typeof fetch,
+  resolveHostname: HostnameResolver = async () => ['93.184.216.34']
+) {
   const db = createInMemoryDatabase();
   initializeDatabase(db);
   const logs: Array<{ event: string; metadata?: Record<string, unknown> }> = [];
@@ -84,7 +88,7 @@ function createApiTestContext(openRouterFetch?: typeof fetch) {
   };
 
   return {
-    app: createApp({ db, logger, openRouterFetch }),
+    app: createApp({ db, logger, openRouterFetch, resolveHostname }),
     db,
     items: createItemRepository(db),
     logs,
@@ -580,6 +584,60 @@ describe('summaries API', () => {
     expect(response.body.error.code).toBe('content_unavailable');
     const calls = fetchMock.mock.calls as unknown as [string, RequestInit][];
     expect(calls.some(([url]) => url === 'https://openrouter.ai/api/v1/chat/completions')).toBe(false);
+  });
+
+  it('returns content_unavailable when extraction exceeds redirect cap', async () => {
+    const redirectingFetch = vi.fn(async (_input: RequestInfo | URL) => {
+      return new Response('', {
+        headers: { Location: 'https://example.com/next-hop' },
+        status: 302
+      });
+    });
+    const { app, items, settings } = createApiTestContext(redirectingFetch as unknown as typeof fetch);
+    settings.updateOpenRouterSettings({
+      apiKey: 'or-v1-secret',
+      model: 'openai/gpt-5-mini'
+    });
+    const item = items.upsertImportedItem({
+      sourceType: 'chrome_bookmark',
+      title: 'Redirect loop article',
+      url: 'https://example.com/redirect-loop'
+    });
+
+    const response = await request(app).post(`/api/v1/items/${item.id}/summary`).send({});
+
+    expect(response.status).toBe(422);
+    expect(response.body.error.code).toBe('content_unavailable');
+    const calls = redirectingFetch.mock.calls as unknown as [string, RequestInit][];
+    expect(calls.length).toBeGreaterThan(5);
+  });
+
+  it('returns content_unavailable when hostname resolves to private IP range', async () => {
+    const fetchMock = createHybridFetchMock({
+      pageHtml: '<html><body><article><p>Should never be fetched.</p></article></body></html>',
+      openRouterContent: 'Should not be used.'
+    });
+    const privateResolver: HostnameResolver = async () => ['192.168.1.12'];
+    const { app, items, settings } = createApiTestContext(
+      fetchMock as unknown as typeof fetch,
+      privateResolver
+    );
+    settings.updateOpenRouterSettings({
+      apiKey: 'or-v1-secret',
+      model: 'openai/gpt-5-mini'
+    });
+    const item = items.upsertImportedItem({
+      sourceType: 'chrome_bookmark',
+      title: 'Private host article',
+      url: 'https://example.com/private-host'
+    });
+
+    const response = await request(app).post(`/api/v1/items/${item.id}/summary`).send({});
+
+    expect(response.status).toBe(422);
+    expect(response.body.error.code).toBe('content_unavailable');
+    const calls = fetchMock.mock.calls as unknown as [string, RequestInit][];
+    expect(calls).toHaveLength(0);
   });
 });
 
