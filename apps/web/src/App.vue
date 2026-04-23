@@ -75,6 +75,8 @@ const notice = ref<{ type: NoticeType; message: string } | null>(null);
 let noticeTimer: number | undefined;
 const summaryModelProfiles = getSortedSummaryModelProfiles();
 const tagModelProfiles = getSortedTagModelProfiles();
+const summaryModelIds = new Set(summaryModelProfiles.map((profile) => profile.id));
+const tagModelIds = new Set(tagModelProfiles.map((profile) => profile.id));
 
 const selectedTagId = computed(() => tagFilter.value || undefined);
 
@@ -118,8 +120,8 @@ async function loadInitialData(): Promise<void> {
     tags.value = tagList.tags;
     chromeProfilePath.value = settings.chromeProfilePath ?? '';
     openRouterConfigured.value = settings.openRouter.apiKeyConfigured;
-    openRouterSummaryModel.value = settings.openRouter.summaryModel;
-    openRouterTagsModel.value = settings.openRouter.tagsModel;
+    openRouterSummaryModel.value = normalizeSummaryModelSelection(settings.openRouter.summaryModel);
+    openRouterTagsModel.value = normalizeTagModelSelection(settings.openRouter.tagsModel);
     syncStatus.value = status;
     syncSummaryDrafts();
   } catch (error) {
@@ -211,15 +213,20 @@ async function saveProfilePath(): Promise<void> {
 
 async function saveAiSettings(): Promise<void> {
   try {
+    const useSummaryAuto = openRouterSummaryModel.value === '';
+    const useTagsAuto = openRouterTagsModel.value === '';
     const openRouterPatch = {
       ...(openRouterApiKey.value.trim() ? { apiKey: openRouterApiKey.value.trim() } : {}),
-      summaryModel: openRouterSummaryModel.value,
-      tagsModel: openRouterTagsModel.value
+      model: '',
+      summaryModel: useSummaryAuto ? '' : openRouterSummaryModel.value,
+      tagsModel: useTagsAuto ? '' : openRouterTagsModel.value
     };
     const settings = await saveOpenRouterSettings(openRouterPatch);
     openRouterConfigured.value = settings.openRouter.apiKeyConfigured;
-    openRouterSummaryModel.value = settings.openRouter.summaryModel;
-    openRouterTagsModel.value = settings.openRouter.tagsModel;
+    openRouterSummaryModel.value = useSummaryAuto
+      ? ''
+      : normalizeSummaryModelSelection(settings.openRouter.summaryModel);
+    openRouterTagsModel.value = useTagsAuto ? '' : normalizeTagModelSelection(settings.openRouter.tagsModel);
     openRouterApiKey.value = '';
     showNotice('success', 'AI settings saved.');
   } catch (error) {
@@ -227,6 +234,14 @@ async function saveAiSettings(): Promise<void> {
     showNotice('error', 'Saving AI settings failed.');
     throw error;
   }
+}
+
+function normalizeSummaryModelSelection(model: string): string {
+  return summaryModelIds.has(model) ? model : '';
+}
+
+function normalizeTagModelSelection(model: string): string {
+  return tagModelIds.has(model) ? model : '';
 }
 
 async function syncBookmarks(): Promise<void> {
@@ -663,41 +678,53 @@ function showNotice(type: NoticeType, message: string): void {
 
     <section v-if="currentView === 'settings'" class="settings-view" aria-label="Application settings">
       <section class="settings-band" aria-label="Sync settings">
-        <InputText
-          v-model="chromeProfilePath"
-          aria-label="Chrome profile path"
-          placeholder="Chrome profile path"
-        />
+        <label class="field-stack">
+          <span class="field-label">Google profile</span>
+          <InputText
+            v-model="chromeProfilePath"
+            aria-label="Chrome profile path"
+            placeholder="Chrome profile path"
+          />
+        </label>
         <Button aria-label="Save Chrome profile path" type="button" @click="saveProfilePath">Save path</Button>
       </section>
 
       <section class="settings-band" aria-label="AI settings">
-        <InputText
-          v-model="openRouterApiKey"
-          aria-label="OpenRouter API key"
-          placeholder="OpenRouter API key"
-          type="password"
-        />
-        <select v-model="openRouterSummaryModel" aria-label="OpenRouter summary model">
-          <option value="">Auto (best summary model)</option>
-          <option
-            v-for="profile in summaryModelProfiles"
-            :key="`summary-${profile.id}`"
-            :value="profile.id"
-          >
-            {{ `${profile.id} (${profile.summaryRating}/5)` }}
-          </option>
-        </select>
-        <select v-model="openRouterTagsModel" aria-label="OpenRouter tags model">
-          <option value="">Auto (best tags model)</option>
-          <option
-            v-for="profile in tagModelProfiles"
-            :key="`tags-${profile.id}`"
-            :value="profile.id"
-          >
-            {{ `${profile.id} (${profile.tagsRating}/5)` }}
-          </option>
-        </select>
+        <label class="field-stack">
+          <span class="field-label">API key</span>
+          <InputText
+            v-model="openRouterApiKey"
+            aria-label="OpenRouter API key"
+            placeholder="OpenRouter API key"
+            type="password"
+          />
+        </label>
+        <label class="field-stack">
+          <span class="field-label">Summary model</span>
+          <select v-model="openRouterSummaryModel" aria-label="OpenRouter summary model">
+            <option value="">Auto (best summary model)</option>
+            <option
+              v-for="profile in summaryModelProfiles"
+              :key="`summary-${profile.id}`"
+              :value="profile.id"
+            >
+              {{ `${profile.id} (${profile.summaryRating}/5)` }}
+            </option>
+          </select>
+        </label>
+        <label class="field-stack">
+          <span class="field-label">Tags model</span>
+          <select v-model="openRouterTagsModel" aria-label="OpenRouter tags model">
+            <option value="">Auto (best tags model)</option>
+            <option
+              v-for="profile in tagModelProfiles"
+              :key="`tags-${profile.id}`"
+              :value="profile.id"
+            >
+              {{ `${profile.id} (${profile.tagsRating}/5)` }}
+            </option>
+          </select>
+        </label>
         <Button aria-label="Save OpenRouter settings" type="button" @click="saveAiSettings">Save AI</Button>
         <span class="sync-status">OpenRouter: {{ openRouterConfigured ? 'configured' : 'not configured' }}</span>
       </section>
@@ -858,6 +885,21 @@ h2 {
 .toolbar :deep(.p-inputtext),
 .settings-band :deep(.p-inputtext) {
   min-width: min(360px, 100%);
+}
+
+.field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: min(360px, 100%);
+}
+
+.field-label {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .settings-view {

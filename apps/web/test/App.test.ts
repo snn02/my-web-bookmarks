@@ -178,6 +178,10 @@ describe('App', () => {
     await openView(wrapper, 'settings');
     expect(wrapper.find('[aria-label="Chrome profile path"]').exists()).toBe(true);
     expect(wrapper.find('[aria-label="OpenRouter API key"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Google profile');
+    expect(wrapper.text()).toContain('API key');
+    expect(wrapper.text()).toContain('Summary model');
+    expect(wrapper.text()).toContain('Tags model');
     expect(wrapper.find('[aria-label="OpenRouter summary model"]').exists()).toBe(true);
     expect(wrapper.find('[aria-label="OpenRouter tags model"]').exists()).toBe(true);
     expect(wrapper.text()).toContain('(5/5)');
@@ -543,8 +547,9 @@ describe('App', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/settings', {
       body: JSON.stringify({
         openRouter: {
-          summaryModel: 'openai/gpt-5-mini',
-          tagsModel: 'openai/gpt-5-mini'
+          model: '',
+          summaryModel: '',
+          tagsModel: ''
         }
       }),
       headers: { 'Content-Type': 'application/json' },
