@@ -1,7 +1,6 @@
 import type { createItemRepository } from '../items/item-repository';
 import type { createSettingsRepository } from '../settings/settings-repository';
 import type { createSummaryRepository } from '../summaries/summary-repository';
-import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import {
   createOpenRouterClient,
@@ -10,16 +9,13 @@ import {
 } from '../../integrations/openrouter/openrouter-client';
 
 const DEFAULT_OPENROUTER_MODEL = 'openai/gpt-5-mini';
-const EXTRACTION_TIMEOUT_MS = 8_000;
-const EXTRACTION_MAX_BYTES = 400_000;
+const EXTRACTION_TIMEOUT_MS = 15_000;
+const EXTRACTION_MAX_BYTES = 1_500_000;
 const EXTRACTION_MAX_REDIRECTS = 5;
-
-export type HostnameResolver = (hostname: string) => Promise<string[]>;
 
 export interface AiServiceDependencies {
   fetchImpl?: typeof fetch;
   items: ReturnType<typeof createItemRepository>;
-  resolveHostname?: HostnameResolver;
   settings: ReturnType<typeof createSettingsRepository>;
   summaries: ReturnType<typeof createSummaryRepository>;
 }
@@ -52,7 +48,6 @@ export interface TagSuggestion {
 export function createAiService({
   fetchImpl,
   items,
-  resolveHostname = defaultResolveHostname,
   settings,
   summaries
 }: AiServiceDependencies) {
@@ -66,7 +61,7 @@ export function createAiService({
       throw new AiNotConfiguredError();
     }
 
-    const extractedContent = await extractPageContent(item.url, fetchImpl ?? fetch, resolveHostname);
+    const extractedContent = await extractPageContent(item.url, fetchImpl ?? fetch);
     const model =
       settings.getPublicSettings().openRouter.summaryModel || DEFAULT_OPENROUTER_MODEL;
     const content = await completeWithOpenRouter(
@@ -102,7 +97,7 @@ export function createAiService({
         ? buildTagContextFromSummary(item)
         : buildTagContextFromExtractedContent(
             item,
-            await extractPageContent(item.url, fetchImpl ?? fetch, resolveHostname)
+            await extractPageContent(item.url, fetchImpl ?? fetch)
           );
 
     const model = settings.getPublicSettings().openRouter.tagsModel || DEFAULT_OPENROUTER_MODEL;
@@ -192,13 +187,11 @@ function buildTagContextFromExtractedContent(
 
 async function extractPageContent(
   url: string,
-  fetchImpl: typeof fetch,
-  resolveHostname: HostnameResolver
+  fetchImpl: typeof fetch
 ): Promise<string> {
   return extractPageContentWithRedirects({
     fetchImpl,
     redirectCount: 0,
-    resolveHostname,
     url
   });
 }
@@ -206,12 +199,10 @@ async function extractPageContent(
 async function extractPageContentWithRedirects({
   fetchImpl,
   redirectCount,
-  resolveHostname,
   url
 }: {
   fetchImpl: typeof fetch;
   redirectCount: number;
-  resolveHostname: HostnameResolver;
   url: string;
 }): Promise<string> {
   if (redirectCount > EXTRACTION_MAX_REDIRECTS) {
@@ -219,7 +210,7 @@ async function extractPageContentWithRedirects({
   }
 
   const parsed = safeParseUrl(url);
-  if (!parsed || !isAllowedProtocol(parsed.protocol) || (await isBlockedHost(parsed.hostname, resolveHostname))) {
+  if (!parsed || !isAllowedProtocol(parsed.protocol) || isBlockedHost(parsed.hostname)) {
     throw new ContentUnavailableError();
   }
 
@@ -254,7 +245,6 @@ async function extractPageContentWithRedirects({
     return extractPageContentWithRedirects({
       fetchImpl,
       redirectCount: redirectCount + 1,
-      resolveHostname,
       url: nextUrl
     });
   }
@@ -274,15 +264,6 @@ async function extractPageContentWithRedirects({
   return normalized;
 }
 
-async function defaultResolveHostname(hostname: string): Promise<string[]> {
-  try {
-    const addresses = await lookup(hostname, { all: true, verbatim: true });
-    return addresses.map((entry) => entry.address);
-  } catch {
-    return [];
-  }
-}
-
 function safeParseUrl(value: string): URL | null {
   try {
     return new URL(value);
@@ -295,13 +276,16 @@ function isAllowedProtocol(protocol: string): boolean {
   return protocol === 'http:' || protocol === 'https:';
 }
 
-async function isBlockedHost(hostname: string, resolveHostname: HostnameResolver): Promise<boolean> {
+function isBlockedHost(hostname: string): boolean {
   if (isBlockedHostnameLiteral(hostname)) {
     return true;
   }
 
-  const resolved = await resolveHostname(hostname);
-  return resolved.some((address) => isBlockedIpAddress(address));
+  if (isIP(hostname) > 0) {
+    return isBlockedIpAddress(hostname);
+  }
+
+  return false;
 }
 
 function isBlockedHostnameLiteral(hostname: string): boolean {

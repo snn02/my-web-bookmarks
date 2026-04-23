@@ -7,7 +7,6 @@ import { createSettingsRepository } from '../../src/domain/settings/settings-rep
 import { createSummaryRepository } from '../../src/domain/summaries/summary-repository';
 import { createTagRepository } from '../../src/domain/tags/tag-repository';
 import type { AppLogger } from '../../src/logging/app-logger';
-import type { HostnameResolver } from '../../src/domain/ai/ai-service';
 
 function createOpenRouterFetchMock(content: string, status = 200) {
   return vi.fn(async (input: RequestInfo | URL) => {
@@ -74,10 +73,7 @@ function createHybridFetchMock(options: {
   });
 }
 
-function createApiTestContext(
-  openRouterFetch?: typeof fetch,
-  resolveHostname: HostnameResolver = async () => ['93.184.216.34']
-) {
+function createApiTestContext(openRouterFetch?: typeof fetch) {
   const db = createInMemoryDatabase();
   initializeDatabase(db);
   const logs: Array<{ event: string; metadata?: Record<string, unknown> }> = [];
@@ -88,7 +84,7 @@ function createApiTestContext(
   };
 
   return {
-    app: createApp({ db, logger, openRouterFetch, resolveHostname }),
+    app: createApp({ db, logger, openRouterFetch }),
     db,
     items: createItemRepository(db),
     logs,
@@ -612,16 +608,12 @@ describe('summaries API', () => {
     expect(calls.length).toBeGreaterThan(5);
   });
 
-  it('returns content_unavailable when hostname resolves to private IP range', async () => {
+  it('returns content_unavailable when item URL directly targets a private IP range', async () => {
     const fetchMock = createHybridFetchMock({
       pageHtml: '<html><body><article><p>Should never be fetched.</p></article></body></html>',
       openRouterContent: 'Should not be used.'
     });
-    const privateResolver: HostnameResolver = async () => ['192.168.1.12'];
-    const { app, items, settings } = createApiTestContext(
-      fetchMock as unknown as typeof fetch,
-      privateResolver
-    );
+    const { app, items, settings } = createApiTestContext(fetchMock as unknown as typeof fetch);
     settings.updateOpenRouterSettings({
       apiKey: 'or-v1-secret',
       model: 'openai/gpt-5-mini'
@@ -629,7 +621,7 @@ describe('summaries API', () => {
     const item = items.upsertImportedItem({
       sourceType: 'chrome_bookmark',
       title: 'Private host article',
-      url: 'https://example.com/private-host'
+      url: 'http://192.168.1.12/private-host'
     });
 
     const response = await request(app).post(`/api/v1/items/${item.id}/summary`).send({});

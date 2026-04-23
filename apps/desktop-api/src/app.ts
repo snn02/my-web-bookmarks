@@ -3,7 +3,6 @@ import express, { type Express } from 'express';
 import { createInMemoryDatabase, initializeDatabase, type AppDatabase } from './db/database';
 import {
   AiNotConfiguredError,
-  type HostnameResolver,
   AiUpstreamError,
   ContentUnavailableError,
   createAiService
@@ -21,7 +20,6 @@ export interface CreateAppOptions {
   db?: AppDatabase;
   logger?: AppLogger;
   openRouterFetch?: typeof fetch;
-  resolveHostname?: HostnameResolver;
 }
 
 const ITEM_STATUSES = new Set<ItemStatus>(['new', 'read', 'archived']);
@@ -45,7 +43,6 @@ export function createApp(options: CreateAppOptions = {}): Express {
   const ai = createAiService({
     fetchImpl: options.openRouterFetch,
     items,
-    resolveHostname: options.resolveHostname,
     settings,
     summaries
   });
