@@ -31,6 +31,12 @@ export class AiUpstreamError extends Error {
   }
 }
 
+export class ContentUnavailableError extends Error {
+  constructor() {
+    super('Page content is unavailable for AI processing.');
+  }
+}
+
 export interface TagSuggestion {
   name: string;
 }
@@ -42,16 +48,21 @@ export function createAiService({ fetchImpl, items, settings, summaries }: AiSer
       return null;
     }
 
+    if (!settings.getOpenRouterApiKey()) {
+      throw new AiNotConfiguredError();
+    }
+
+    const extractedContent = await extractPageContent(item.url, fetchImpl ?? fetch);
     const model = settings.getPublicSettings().openRouter.model ?? DEFAULT_OPENROUTER_MODEL;
     const content = await completeWithOpenRouter([
       {
         role: 'system',
         content:
-          'Summarize a bookmarked web page for a personal reading inbox. Write the summary in Russian. Return only the summary text.'
+          'Summarize a bookmarked web page for a personal reading inbox. Use only the provided extracted content. Do not invent missing facts. If content is insufficient, state that briefly. Write the summary in Russian. Return only the summary text.'
       },
       {
         role: 'user',
-        content: buildItemContext(item)
+        content: buildSummaryContext(item, extractedContent)
       }
     ]);
 
@@ -64,6 +75,15 @@ export function createAiService({ fetchImpl, items, settings, summaries }: AiSer
       return null;
     }
 
+    if (!settings.getOpenRouterApiKey()) {
+      throw new AiNotConfiguredError();
+    }
+
+    const tagContext =
+      item.summary?.content?.trim()
+        ? buildTagContextFromSummary(item)
+        : buildTagContextFromExtractedContent(item, await extractPageContent(item.url, fetchImpl ?? fetch));
+
     const content = await completeWithOpenRouter([
       {
         role: 'system',
@@ -72,7 +92,7 @@ export function createAiService({ fetchImpl, items, settings, summaries }: AiSer
       },
       {
         role: 'user',
-        content: buildItemContext(item)
+        content: tagContext
       }
     ]);
 
@@ -110,6 +130,119 @@ function buildItemContext(item: NonNullable<ReturnType<ReturnType<typeof createI
     `Domain: ${item.domain}`,
     `Current summary: ${item.summary?.content ?? 'none'}`
   ].join('\n');
+}
+
+function buildSummaryContext(
+  item: NonNullable<ReturnType<ReturnType<typeof createItemRepository>['getItem']>>,
+  extractedContent: string
+): string {
+  return [
+    `Title: ${item.title}`,
+    `URL: ${item.url}`,
+    `Domain: ${item.domain}`,
+    'Extracted content (authoritative source):',
+    '"""',
+    extractedContent,
+    '"""'
+  ].join('\n');
+}
+
+function buildTagContextFromSummary(
+  item: NonNullable<ReturnType<ReturnType<typeof createItemRepository>['getItem']>>
+): string {
+  return [
+    `Title: ${item.title}`,
+    `URL: ${item.url}`,
+    `Domain: ${item.domain}`,
+    'Summary context:',
+    item.summary?.content ?? ''
+  ].join('\n');
+}
+
+function buildTagContextFromExtractedContent(
+  item: NonNullable<ReturnType<ReturnType<typeof createItemRepository>['getItem']>>,
+  extractedContent: string
+): string {
+  return [
+    `Title: ${item.title}`,
+    `URL: ${item.url}`,
+    `Domain: ${item.domain}`,
+    'Extracted content context:',
+    extractedContent
+  ].join('\n');
+}
+
+async function extractPageContent(url: string, fetchImpl: typeof fetch): Promise<string> {
+  const parsed = safeParseUrl(url);
+  if (!parsed || !isAllowedProtocol(parsed.protocol) || isBlockedHostname(parsed.hostname)) {
+    throw new ContentUnavailableError();
+  }
+
+  let response: Response;
+  try {
+    response = await fetchImpl(parsed.toString(), {
+      method: 'GET',
+      redirect: 'follow'
+    });
+  } catch {
+    throw new ContentUnavailableError();
+  }
+
+  if (!response.ok) {
+    throw new ContentUnavailableError();
+  }
+
+  const contentType = response.headers.get('content-type') ?? '';
+  const raw = await response.text();
+  const normalized = preprocessExtractedContent(
+    contentType.includes('html') ? extractTextFromHtml(raw) : raw
+  );
+  if (!normalized) {
+    throw new ContentUnavailableError();
+  }
+  return normalized;
+}
+
+function safeParseUrl(value: string): URL | null {
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
+function isAllowedProtocol(protocol: string): boolean {
+  return protocol === 'http:' || protocol === 'https:';
+}
+
+function isBlockedHostname(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (host === 'localhost' || host === '::1') {
+    return true;
+  }
+
+  if (host.startsWith('127.') || host.startsWith('10.') || host.startsWith('192.168.')) {
+    return true;
+  }
+
+  const private172 = /^172\.(1[6-9]|2\d|3[0-1])\./;
+  return private172.test(host);
+}
+
+function extractTextFromHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ');
+}
+
+function preprocessExtractedContent(value: string): string {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (!normalized) {
+    return '';
+  }
+  return normalized.slice(0, 12000);
 }
 
 function parseTagSuggestions(content: string): TagSuggestion[] {

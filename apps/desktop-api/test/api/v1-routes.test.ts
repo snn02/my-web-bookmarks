@@ -9,7 +9,18 @@ import { createTagRepository } from '../../src/domain/tags/tag-repository';
 import type { AppLogger } from '../../src/logging/app-logger';
 
 function createOpenRouterFetchMock(content: string, status = 200) {
-  return vi.fn(async () => {
+  return vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url !== 'https://openrouter.ai/api/v1/chat/completions') {
+      return new Response(
+        '<html><body><article><p>Default extracted content for tests.</p></article></body></html>',
+        {
+          headers: { 'Content-Type': 'text/html; charset=utf-8' },
+          status: 200
+        }
+      );
+    }
+
     return new Response(
       JSON.stringify({
         choices: [
@@ -25,6 +36,40 @@ function createOpenRouterFetchMock(content: string, status = 200) {
         status
       }
     );
+  });
+}
+
+function createHybridFetchMock(options: {
+  pageHtml?: string;
+  pageStatus?: number;
+  openRouterContent: string;
+  openRouterStatus?: number;
+}) {
+  return vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+
+    if (url === 'https://openrouter.ai/api/v1/chat/completions') {
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: options.openRouterContent
+              }
+            }
+          ]
+        }),
+        {
+          headers: { 'Content-Type': 'application/json' },
+          status: options.openRouterStatus ?? 200
+        }
+      );
+    }
+
+    return new Response(options.pageHtml ?? '', {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      status: options.pageStatus ?? 200
+    });
   });
 }
 
@@ -290,8 +335,11 @@ describe('summaries API', () => {
       })
     );
     const openRouterFetchCalls = openRouterFetch.mock.calls as unknown as [string, RequestInit][];
-    expect(JSON.stringify(openRouterFetchCalls[0][1])).toContain('AI summary article');
-    expect(JSON.stringify(openRouterFetchCalls[0][1])).toContain('Russian');
+    const openRouterCall = openRouterFetchCalls.find(
+      ([url]) => url === 'https://openrouter.ai/api/v1/chat/completions'
+    );
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('AI summary article');
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('Russian');
     expect(logs.some((entry) => entry.event === 'ai.summary.generated')).toBe(true);
   });
 
@@ -340,8 +388,69 @@ describe('summaries API', () => {
     });
     expect(tags.listTags()).toEqual([]);
     const openRouterFetchCalls = openRouterFetch.mock.calls as unknown as [string, RequestInit][];
-    expect(JSON.stringify(openRouterFetchCalls[0][1])).toContain('one tag per line');
-    expect(JSON.stringify(openRouterFetchCalls[0][1])).not.toContain('JSON array');
+    const openRouterCall = openRouterFetchCalls.find(
+      ([url]) => url === 'https://openrouter.ai/api/v1/chat/completions'
+    );
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('one tag per line');
+    expect(JSON.stringify(openRouterCall?.[1])).not.toContain('JSON array');
+  });
+
+  it('builds tag suggestion prompt from stored summary without page extraction call', async () => {
+    const fetchMock = createHybridFetchMock({
+      pageHtml: '<html><body><article><p>Page extraction should be skipped.</p></article></body></html>',
+      openRouterContent: '["summary-driven"]'
+    });
+    const { app, items, settings, summaries } = createApiTestContext(fetchMock as unknown as typeof fetch);
+    settings.updateOpenRouterSettings({
+      apiKey: 'or-v1-secret',
+      model: 'openai/gpt-5-mini'
+    });
+    const item = items.upsertImportedItem({
+      sourceType: 'chrome_bookmark',
+      title: 'Summary-first tags',
+      url: 'https://example.com/summary-first'
+    });
+    summaries.upsertSummary(item.id, 'Stored summary context.', 'openai/gpt-5-mini', 'openrouter', 'ai');
+
+    const response = await request(app).post(`/api/v1/items/${item.id}/tag-suggestions`).send({});
+
+    expect(response.status).toBe(200);
+    const calls = fetchMock.mock.calls as unknown as [string, RequestInit][];
+    const pageCalls = calls.filter(([url]) => url === item.url);
+    expect(pageCalls).toHaveLength(0);
+    const openRouterCall = calls.find(
+      ([url]) => url === 'https://openrouter.ai/api/v1/chat/completions'
+    );
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('Stored summary context.');
+  });
+
+  it('uses extracted page content for tag suggestions when summary is missing and does not persist summary', async () => {
+    const fetchMock = createHybridFetchMock({
+      pageHtml:
+        '<html><body><article><h1>Tags from content</h1><p>Extracted fallback text for tags.</p></article></body></html>',
+      openRouterContent: '["fallback-context"]'
+    });
+    const { app, items, settings, summaries } = createApiTestContext(fetchMock as unknown as typeof fetch);
+    settings.updateOpenRouterSettings({
+      apiKey: 'or-v1-secret',
+      model: 'openai/gpt-5-mini'
+    });
+    const item = items.upsertImportedItem({
+      sourceType: 'chrome_bookmark',
+      title: 'No summary tags',
+      url: 'https://example.com/no-summary-tags'
+    });
+
+    const response = await request(app).post(`/api/v1/items/${item.id}/tag-suggestions`).send({});
+
+    expect(response.status).toBe(200);
+    expect(response.body.suggestions).toEqual([{ name: 'fallback-context' }]);
+    expect(summaries.getSummary(item.id)).toBeNull();
+    const calls = fetchMock.mock.calls as unknown as [string, RequestInit][];
+    const openRouterCall = calls.find(
+      ([url]) => url === 'https://openrouter.ai/api/v1/chat/completions'
+    );
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('Extracted fallback text for tags.');
   });
 
   it('maps OpenRouter failures to upstream_error', async () => {
@@ -392,8 +501,16 @@ describe('summaries API', () => {
   });
 
   it('maps OpenRouter network errors to upstream_error', async () => {
-    const openRouterFetch = vi.fn(async () => {
-      throw new TypeError('network failure');
+    const openRouterFetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === 'https://openrouter.ai/api/v1/chat/completions') {
+        throw new TypeError('network failure');
+      }
+
+      return new Response('<html><body><article><p>Reachable page.</p></article></body></html>', {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        status: 200
+      });
     });
     const { app, items, settings } = createApiTestContext(openRouterFetch);
     settings.updateOpenRouterSettings({
@@ -410,6 +527,59 @@ describe('summaries API', () => {
 
     expect(response.status).toBe(502);
     expect(response.body.error.code).toBe('upstream_error');
+  });
+
+  it('builds summary prompt from extracted page content', async () => {
+    const fetchMock = createHybridFetchMock({
+      pageHtml:
+        '<html><body><article><h1>Grounded title</h1><p>Grounded content for summary extraction.</p></article></body></html>',
+      openRouterContent: 'Grounded summary output.'
+    });
+    const { app, items, settings } = createApiTestContext(fetchMock as unknown as typeof fetch);
+    settings.updateOpenRouterSettings({
+      apiKey: 'or-v1-secret',
+      model: 'openai/gpt-5-mini'
+    });
+    const item = items.upsertImportedItem({
+      sourceType: 'chrome_bookmark',
+      title: 'Grounding article',
+      url: 'https://example.com/grounding'
+    });
+
+    const response = await request(app).post(`/api/v1/items/${item.id}/summary`).send({});
+
+    expect(response.status).toBe(200);
+    const calls = fetchMock.mock.calls as unknown as [string, RequestInit][];
+    const openRouterCall = calls.find(
+      ([url]) => url === 'https://openrouter.ai/api/v1/chat/completions'
+    );
+    expect(openRouterCall).toBeDefined();
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('Grounded content for summary extraction.');
+  });
+
+  it('returns content_unavailable when extracted page content cannot be obtained', async () => {
+    const fetchMock = createHybridFetchMock({
+      pageHtml: 'forbidden',
+      pageStatus: 403,
+      openRouterContent: 'Should not be used.'
+    });
+    const { app, items, settings } = createApiTestContext(fetchMock as unknown as typeof fetch);
+    settings.updateOpenRouterSettings({
+      apiKey: 'or-v1-secret',
+      model: 'openai/gpt-5-mini'
+    });
+    const item = items.upsertImportedItem({
+      sourceType: 'chrome_bookmark',
+      title: 'Blocked article',
+      url: 'https://example.com/blocked'
+    });
+
+    const response = await request(app).post(`/api/v1/items/${item.id}/summary`).send({});
+
+    expect(response.status).toBe(422);
+    expect(response.body.error.code).toBe('content_unavailable');
+    const calls = fetchMock.mock.calls as unknown as [string, RequestInit][];
+    expect(calls.some(([url]) => url === 'https://openrouter.ai/api/v1/chat/completions')).toBe(false);
   });
 });
 

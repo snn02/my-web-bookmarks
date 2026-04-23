@@ -53,6 +53,7 @@ Common error codes:
 - `not_found`
 - `conflict`
 - `ai_not_configured`
+- `content_unavailable`
 - `sync_already_running`
 - `upstream_error`
 
@@ -61,6 +62,7 @@ Frontend behavior:
 - The API returns structured JSON errors for machine handling.
 - The web client renders user-readable messages instead of raw JSON payloads.
 - For `upstream_error` from AI endpoints, the web client should include guidance to check the OpenRouter API key, model name, network access, or provider availability.
+- For `content_unavailable` from AI summary endpoints, the web client should show that page content could not be retrieved or parsed, and suggest retrying later or checking URL accessibility.
 - If the backend provides more specific OpenRouter guidance, such as a rate limit message, the web client should render that specific message without adding generic guidance.
 
 ## Resource Models
@@ -437,6 +439,7 @@ Errors:
 ### `POST /items/:itemId/summary`
 
 Generates or regenerates the current summary with AI.
+The backend first extracts page content from the item URL, preprocesses it, and then asks the model to summarize only that extracted content.
 
 Request body:
 
@@ -459,6 +462,7 @@ Errors:
 
 - `404 Not Found` when the item does not exist
 - `409 Conflict` with `ai_not_configured` when OpenRouter is not configured
+- `422 Unprocessable Entity` with `content_unavailable` when page content cannot be fetched or processed for summarization
 - `502 Bad Gateway` with `upstream_error` when AI generation fails upstream
 - `upstream_error` may use a specific message for OpenRouter rate limits, rejected keys, rejected model names, or invalid request formats
 
@@ -521,12 +525,15 @@ Rules:
 
 - Suggestions are not saved automatically
 - The frontend must explicitly attach confirmed tags through tag endpoints
+- If an item already has a stored summary, tag suggestions are generated from that summary context first.
+- If summary is missing, the backend extracts and preprocesses page content for tag context without persisting a new summary.
 - The backend asks OpenRouter for one short tag per line and tolerates JSON, comma-separated, or newline-separated model output.
 
 Errors:
 
 - `404 Not Found` when the item does not exist
 - `409 Conflict` with `ai_not_configured` when OpenRouter is not configured
+- `422 Unprocessable Entity` with `content_unavailable` when tag context cannot be built from page content while summary is missing
 - `502 Bad Gateway` with `upstream_error` when AI generation fails upstream
 
 ### `POST /sync/bookmarks`

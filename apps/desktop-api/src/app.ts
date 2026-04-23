@@ -1,7 +1,12 @@
 import { API_BASE_PATH, healthResponse } from '@my-web-bookmarks/shared';
 import express, { type Express } from 'express';
 import { createInMemoryDatabase, initializeDatabase, type AppDatabase } from './db/database';
-import { AiNotConfiguredError, AiUpstreamError, createAiService } from './domain/ai/ai-service';
+import {
+  AiNotConfiguredError,
+  AiUpstreamError,
+  ContentUnavailableError,
+  createAiService
+} from './domain/ai/ai-service';
 import { createItemRepository, type ItemSort, type ItemStatus } from './domain/items/item-repository';
 import { createSettingsRepository } from './domain/settings/settings-repository';
 import { createSummaryRepository } from './domain/summaries/summary-repository';
@@ -326,6 +331,10 @@ function sendAiError(response: Parameters<typeof sendApiError>[0], error: unknow
 
   if (error instanceof AiUpstreamError) {
     return sendApiError(response, 502, 'upstream_error', getAiUpstreamMessage(error));
+  }
+
+  if (error instanceof ContentUnavailableError) {
+    return sendApiError(response, 422, 'content_unavailable', error.message);
   }
 
   throw error;
