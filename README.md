@@ -37,7 +37,24 @@ Local desktop-first app for managing Chrome bookmarks: import, statuses, tags, a
 npm install
 ```
 
-Run in two terminals from the repository root.
+Recommended: run with the Windows launcher from the repository root.
+
+```powershell
+npm run launcher:start
+npm run launcher:status
+```
+
+This starts both backend and web services together.
+
+To stop everything:
+
+```powershell
+npm run launcher:stop
+```
+
+## Development Mode (Two Terminals)
+
+Optional for debugging: run backend and frontend separately.
 
 Terminal 1:
 
@@ -54,13 +71,10 @@ npm run dev:web
 - API: `http://127.0.0.1:4321`
 - Web (Vite): `http://127.0.0.1:5173`
 
-## Run With Launcher (Windows)
+## Launcher Commands (Windows)
 
 ```powershell
-npm run launcher:start
-npm run launcher:status
 npm run launcher:restart
-npm run launcher:stop
 ```
 
 Optionally create a desktop shortcut:
