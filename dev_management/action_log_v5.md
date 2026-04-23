@@ -165,3 +165,39 @@ This log is the active implementation journal for V5.
 - Frontend-only changes in item card template/state styling; no API contract change.
 - Added/updated web tests for placement, filtering, confirm, and dismiss behavior.
 - Updated manual smoke and user-story docs for the new interaction flow.
+
+## 2026-04-24 - Iteration Summary And Lessons Learned (Tech Lead)
+
+**Iteration outcomes**
+
+- V5 moved from extraction-heavy AI context to metadata-grounded generation with lightweight page signals.
+- Model selection was simplified from split (summary/tags) back to one shared model setting.
+- Prompt templates for summary and tags were exposed in Settings with safe defaults and reset behavior.
+- Tag suggestion UX was unified into one item-scoped flow with explicit confirm/dismiss actions.
+
+**Lessons learned**
+
+1. Validate AI context quality before expanding architecture:
+   - Full extraction added complexity and instability faster than value.
+   - Metadata + lightweight signals gave a more controllable reliability baseline.
+2. Keep user controls simple unless dual control is clearly necessary:
+   - One shared model selector fit real workflow better than two separate selectors.
+3. Prompt configurability is a debugging tool, not only a feature:
+   - Exposed prompts reduced iteration cycle time when model behavior changed.
+4. AI actions must remain explicitly user-confirmed:
+   - Suggestion flows should never mutate item data without a clear per-item user action.
+5. UI consistency directly reduces operational mistakes:
+   - Unified chip patterns for assigned/suggested/search tags lowered interaction ambiguity.
+6. Manual smoke feedback must be treated as first-class input:
+   - Several high-impact corrections were discovered only during interactive checks.
+7. Require deterministic fallback semantics in settings:
+   - Empty values should map to documented defaults, and UI must reflect resolved state after save.
+8. Keep docs-first discipline for behavior changes:
+   - Updating user stories/smoke/API docs before coding improved scope clarity and reduced rework.
+
+**Planning guidance for next iterations**
+
+- Start each AI slice with a smallest-reliable baseline and explicit rollback criteria.
+- Add a dedicated UI polish checkpoint after functional acceptance for every settings/inbox interaction change.
+- Define "auto/default" behavior contract (save/read/display) in API docs and tests before implementation.
+- Keep issue slices narrow: one behavioral outcome per slice, with separate UX polish slice if needed.
