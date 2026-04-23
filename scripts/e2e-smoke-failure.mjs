@@ -23,8 +23,10 @@ export async function runFailureSmoke() {
       await waitForAppReady(page);
 
       const invalidProfilePath = `C:\\definitely-missing-smoke-${Date.now()}`;
+      await page.getByRole('button', { name: 'Open settings view', exact: true }).click();
       await page.getByRole('textbox', { name: 'Chrome profile path', exact: true }).fill(invalidProfilePath);
       await page.getByRole('button', { name: 'Save Chrome profile path', exact: true }).click();
+      await page.getByRole('button', { name: 'Open inbox view', exact: true }).click();
       await page.getByRole('button', { name: 'Sync bookmarks', exact: true }).click();
 
       await waitForSyncFailed(page);
