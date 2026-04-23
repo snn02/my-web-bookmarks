@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { API_BASE_PATH, type HealthResponse } from '@my-web-bookmarks/shared';
+import {
+  API_BASE_PATH,
+  getSortedSummaryModelProfiles,
+  getSortedTagModelProfiles,
+  type HealthResponse
+} from '@my-web-bookmarks/shared';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
@@ -53,7 +58,8 @@ const newTagName = ref('');
 const chromeProfilePath = ref('');
 const openRouterApiKey = ref('');
 const openRouterConfigured = ref(false);
-const openRouterModel = ref('');
+const openRouterSummaryModel = ref('');
+const openRouterTagsModel = ref('');
 const syncStatus = ref<SyncStatus | null>(null);
 const syncInProgress = ref(false);
 const syncPhase = ref<OperationPhase>('idle');
@@ -67,6 +73,8 @@ const currentView = ref<AppView>(viewFromPath(currentPath()));
 const itemOperationStateById = ref<Record<string, ItemOperationState>>({});
 const notice = ref<{ type: NoticeType; message: string } | null>(null);
 let noticeTimer: number | undefined;
+const summaryModelProfiles = getSortedSummaryModelProfiles();
+const tagModelProfiles = getSortedTagModelProfiles();
 
 const selectedTagId = computed(() => tagFilter.value || undefined);
 
@@ -110,7 +118,8 @@ async function loadInitialData(): Promise<void> {
     tags.value = tagList.tags;
     chromeProfilePath.value = settings.chromeProfilePath ?? '';
     openRouterConfigured.value = settings.openRouter.apiKeyConfigured;
-    openRouterModel.value = settings.openRouter.model ?? 'openai/gpt-5-mini';
+    openRouterSummaryModel.value = settings.openRouter.summaryModel;
+    openRouterTagsModel.value = settings.openRouter.tagsModel;
     syncStatus.value = status;
     syncSummaryDrafts();
   } catch (error) {
@@ -204,11 +213,13 @@ async function saveAiSettings(): Promise<void> {
   try {
     const openRouterPatch = {
       ...(openRouterApiKey.value.trim() ? { apiKey: openRouterApiKey.value.trim() } : {}),
-      model: openRouterModel.value
+      summaryModel: openRouterSummaryModel.value,
+      tagsModel: openRouterTagsModel.value
     };
     const settings = await saveOpenRouterSettings(openRouterPatch);
     openRouterConfigured.value = settings.openRouter.apiKeyConfigured;
-    openRouterModel.value = settings.openRouter.model ?? openRouterModel.value;
+    openRouterSummaryModel.value = settings.openRouter.summaryModel;
+    openRouterTagsModel.value = settings.openRouter.tagsModel;
     openRouterApiKey.value = '';
     showNotice('success', 'AI settings saved.');
   } catch (error) {
@@ -667,7 +678,26 @@ function showNotice(type: NoticeType, message: string): void {
           placeholder="OpenRouter API key"
           type="password"
         />
-        <InputText v-model="openRouterModel" aria-label="OpenRouter model" placeholder="OpenRouter model" />
+        <select v-model="openRouterSummaryModel" aria-label="OpenRouter summary model">
+          <option value="">Auto (best summary model)</option>
+          <option
+            v-for="profile in summaryModelProfiles"
+            :key="`summary-${profile.id}`"
+            :value="profile.id"
+          >
+            {{ `${profile.id} (${profile.summaryRating}/5)` }}
+          </option>
+        </select>
+        <select v-model="openRouterTagsModel" aria-label="OpenRouter tags model">
+          <option value="">Auto (best tags model)</option>
+          <option
+            v-for="profile in tagModelProfiles"
+            :key="`tags-${profile.id}`"
+            :value="profile.id"
+          >
+            {{ `${profile.id} (${profile.tagsRating}/5)` }}
+          </option>
+        </select>
         <Button aria-label="Save OpenRouter settings" type="button" @click="saveAiSettings">Save AI</Button>
         <span class="sync-status">OpenRouter: {{ openRouterConfigured ? 'configured' : 'not configured' }}</span>
       </section>

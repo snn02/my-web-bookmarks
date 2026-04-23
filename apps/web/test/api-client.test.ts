@@ -47,7 +47,11 @@ describe('api client', () => {
     await removeTagFromItem('itm_1', 'tag_1');
     await updateSummary('itm_1', 'Edited summary');
     await saveChromeProfilePath('C:\\Chrome\\Default');
-    await saveOpenRouterSettings({ apiKey: 'or-v1-secret', model: 'openai/gpt-5-mini' });
+    await saveOpenRouterSettings({
+      apiKey: 'or-v1-secret',
+      summaryModel: 'google/gemma-4-31b-it:free',
+      tagsModel: 'qwen/qwen3-next-80b-a3b-instruct:free'
+    });
     await generateSummary('itm_1');
     await suggestTags('itm_1');
     await startBookmarkSync();
@@ -74,7 +78,8 @@ describe('api client', () => {
       body: JSON.stringify({
         openRouter: {
           apiKey: 'or-v1-secret',
-          model: 'openai/gpt-5-mini'
+          summaryModel: 'google/gemma-4-31b-it:free',
+          tagsModel: 'qwen/qwen3-next-80b-a3b-instruct:free'
         }
       }),
       headers: { 'Content-Type': 'application/json' },

@@ -648,7 +648,8 @@ describe('settings API', () => {
     const patchResponse = await request(app).patch('/api/v1/settings').send({
       openRouter: {
         apiKey: 'or-v1-secret',
-        model: 'openai/gpt-5-mini'
+        summaryModel: 'google/gemma-4-31b-it:free',
+        tagsModel: 'qwen/qwen3-next-80b-a3b-instruct:free'
       }
     });
 
@@ -657,7 +658,8 @@ describe('settings API', () => {
       chromeProfilePath: null,
       openRouter: {
         apiKeyConfigured: true,
-        model: 'openai/gpt-5-mini'
+        summaryModel: 'google/gemma-4-31b-it:free',
+        tagsModel: 'qwen/qwen3-next-80b-a3b-instruct:free'
       }
     });
     expect(JSON.stringify(patchResponse.body)).not.toContain('or-v1-secret');
@@ -668,6 +670,20 @@ describe('settings API', () => {
     const getResponse = await request(app).get('/api/v1/settings');
     expect(getResponse.status).toBe(200);
     expect(JSON.stringify(getResponse.body)).not.toContain('or-v1-secret');
+  });
+
+  it('applies legacy model patch to both operation-specific model fields', async () => {
+    const { app } = createApiTestContext();
+
+    const patchResponse = await request(app).patch('/api/v1/settings').send({
+      openRouter: {
+        model: 'openai/gpt-oss-120b:free'
+      }
+    });
+
+    expect(patchResponse.status).toBe(200);
+    expect(patchResponse.body.openRouter.summaryModel).toBe('openai/gpt-oss-120b:free');
+    expect(patchResponse.body.openRouter.tagsModel).toBe('openai/gpt-oss-120b:free');
   });
 
   it('patches and returns saved Chrome profile path without default detection', async () => {

@@ -81,3 +81,65 @@ This log is the active implementation journal for V5.
 **Next**
 
 - Reflect these controls in issue execution checklists before coding V5-I1.
+
+## 2026-04-23 - V5-I1 Implemented (Grounded Summary + Extraction Hardening)
+
+**What changed**
+
+- Summary generation now extracts and preprocesses page content before model call.
+- Summary prompts were hardened to use only provided extracted content.
+- Added extraction failure mapping to `content_unavailable`.
+- Added extraction hardening controls:
+  - timeout;
+  - response size limit;
+  - redirect cap;
+  - private/local host and resolved-address blocking.
+
+**What passed after**
+
+- `npm run typecheck`
+- `npm run lint`
+- `npm test`
+
+**Lesson that changes future work**
+
+- Extraction safety constraints must be implemented and tested in the same slice as feature behavior to avoid post-merge security drift.
+
+## 2026-04-23 - V5-I2 Implemented (Summary-First Tag Grounding)
+
+**What changed**
+
+- Tag generation now prefers stored summary context.
+- If summary is missing, backend uses extraction/preprocessing context.
+- Tag flow keeps no-summary-persistence behavior.
+- Tag prompt wording now enforces context-only generation.
+
+**What passed after**
+
+- `npm run typecheck`
+- `npm run lint`
+- `npm test`
+
+**Lesson that changes future work**
+
+- For multi-path AI flows, tests must assert both context selection and side-effect boundaries.
+
+## 2026-04-23 - V5-I3 Implemented (Dual Model Settings + Ranked Dropdowns)
+
+**What changed**
+
+- Added shared runtime model table and ranking helpers.
+- Added operation-scoped settings keys for summary and tags models with deterministic legacy fallback.
+- Updated settings API to accept/return operation-scoped model fields.
+- Updated web settings UI with two ranked model dropdowns and a single save action.
+- Updated docs for API settings schema and settings storage keys.
+
+**What passed after**
+
+- `npm run typecheck`
+- `npm run lint`
+- `npm test`
+
+**Next**
+
+- Collect review feedback on #5, #6, #7 and mark slices accepted.

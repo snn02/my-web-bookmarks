@@ -8,6 +8,11 @@ The app is local-first. Chrome remains the source for imported bookmark input, w
 - Set `DATABASE_PATH` to override the default database file.
 - Automated tests use in-memory or temporary databases.
 - `npm run smoke` uses an isolated temporary database so it does not mutate the real app database.
+- AI settings are stored in `settings` key-value rows, including:
+  - `openrouter_api_key`
+  - `openrouter_summary_model`
+  - `openrouter_tags_model`
+  - legacy fallback key `openrouter_model`
 
 ## Backing Up SQLite
 

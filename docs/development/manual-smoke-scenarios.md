@@ -22,7 +22,7 @@ These scenarios mirror the lifecycle checks introduced after Iteration 4 and Ite
 
 - Start backend and web UI.
 - Confirm the app opens in `Inbox` view and `Settings` is accessible from the top switch.
-- Open `Settings` and verify `Chrome profile path` and OpenRouter controls are present.
+- Open `Settings` and verify `Chrome profile path`, OpenRouter API key field, and both model dropdowns are present.
 - Return to `Inbox` and verify those settings controls are not present there.
 - Leave Chrome profile path empty.
 - Press `Sync`.
@@ -60,7 +60,7 @@ These scenarios mirror the lifecycle checks introduced after Iteration 4 and Ite
 - Press `Generate summary`.
 - Expected result: AI action reaches a visible failure state and manual bookmark workflows still work.
 - Return to `Settings`.
-- Enter OpenRouter API key and model.
+- Enter OpenRouter API key and choose summary/tags models.
 - Press `Save AI`.
 - Expected result: a visible success confirmation appears.
 - Return to `Inbox`.

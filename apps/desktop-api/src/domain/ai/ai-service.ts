@@ -67,8 +67,10 @@ export function createAiService({
     }
 
     const extractedContent = await extractPageContent(item.url, fetchImpl ?? fetch, resolveHostname);
-    const model = settings.getPublicSettings().openRouter.model ?? DEFAULT_OPENROUTER_MODEL;
-    const content = await completeWithOpenRouter([
+    const model =
+      settings.getPublicSettings().openRouter.summaryModel || DEFAULT_OPENROUTER_MODEL;
+    const content = await completeWithOpenRouter(
+      [
       {
         role: 'system',
         content:
@@ -78,7 +80,9 @@ export function createAiService({
         role: 'user',
         content: buildSummaryContext(item, extractedContent)
       }
-    ]);
+      ],
+      model
+    );
 
     return summaries.upsertSummary(item.id, content, model, 'openrouter', 'ai');
   }
@@ -101,7 +105,9 @@ export function createAiService({
             await extractPageContent(item.url, fetchImpl ?? fetch, resolveHostname)
           );
 
-    const content = await completeWithOpenRouter([
+    const model = settings.getPublicSettings().openRouter.tagsModel || DEFAULT_OPENROUTER_MODEL;
+    const content = await completeWithOpenRouter(
+      [
       {
         role: 'system',
         content:
@@ -111,18 +117,22 @@ export function createAiService({
         role: 'user',
         content: tagContext
       }
-    ]);
+      ],
+      model
+    );
 
     return parseTagSuggestions(content);
   }
 
-  async function completeWithOpenRouter(messages: Parameters<ReturnType<typeof createOpenRouterClient>['complete']>[0]) {
+  async function completeWithOpenRouter(
+    messages: Parameters<ReturnType<typeof createOpenRouterClient>['complete']>[0],
+    model: string
+  ) {
     const apiKey = settings.getOpenRouterApiKey();
     if (!apiKey) {
       throw new AiNotConfiguredError();
     }
 
-    const model = settings.getPublicSettings().openRouter.model ?? DEFAULT_OPENROUTER_MODEL;
     const client = createOpenRouterClient({ apiKey, fetchImpl, model });
     try {
       return await client.complete(messages);

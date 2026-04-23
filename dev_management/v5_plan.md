@@ -13,13 +13,13 @@ Deliver grounded AI generation by summarizing real page content (not only metada
 
 ## Version Status
 
-Planned on 2026-04-23.
+In progress on 2026-04-23.
 
 ## Iterations
 
 ## V5-I1: Grounded Summary From Extracted Page Content
 
-**Status:** planned  
+**Status:** implemented (ready for review)  
 **Issue:** #5 ([URL](https://github.com/snn02/my-web-bookmarks/issues/5))
 
 **User-visible outcome (before/after)**
@@ -51,9 +51,14 @@ Planned on 2026-04-23.
 - `npm test`
 - `npm run smoke`
 
+**Execution notes**
+
+- Implemented extraction-first summary flow with readable `content_unavailable` failure mapping.
+- Added extraction hardening: timeout, response size cap, redirect cap, and private/local host blocking.
+
 ## V5-I2: Tag Suggestions Use Summary-First Grounding
 
-**Status:** planned  
+**Status:** implemented (ready for review)  
 **Issue:** #6 ([URL](https://github.com/snn02/my-web-bookmarks/issues/6))
 
 **User-visible outcome (before/after)**
@@ -83,9 +88,15 @@ Planned on 2026-04-23.
 - `npm test`
 - `npm run smoke`
 
+**Execution notes**
+
+- Implemented summary-first tag context selection.
+- Added no-summary extraction fallback without summary persistence side effects.
+- Added anti-hallucination wording to tag prompt context usage.
+
 ## V5-I3: Dual AI Model Settings With Ranked Dropdowns And Defaults
 
-**Status:** planned  
+**Status:** implemented (ready for review)  
 **Issue:** #7 ([URL](https://github.com/snn02/my-web-bookmarks/issues/7))
 
 **User-visible outcome (before/after)**
@@ -117,6 +128,13 @@ Planned on 2026-04-23.
 - `npm run lint`
 - `npm test`
 - `npm run smoke`
+
+**Execution notes**
+
+- Added operation-scoped model settings in backend (`summaryModel`, `tagsModel`) with legacy `model` fallback compatibility.
+- Added shared runtime model table and deterministic sorting/default helpers.
+- Added Settings UI dual dropdowns (summary/tags) with one shared Save AI action.
+- Updated owner docs for API contract and settings storage keys.
 
 ## Execution Order
 

@@ -140,7 +140,8 @@ Summary rules:
 {
   "openRouter": {
     "apiKeyConfigured": true,
-    "model": "openai/gpt-5-mini"
+    "summaryModel": "google/gemma-4-31b-it:free",
+    "tagsModel": "qwen/qwen3-next-80b-a3b-instruct:free"
   }
 }
 ```
@@ -149,6 +150,8 @@ Settings rules:
 
 - `GET /settings` never returns the raw API key
 - `PATCH /settings` may set or clear the API key
+- `summaryModel` and `tagsModel` are operation-scoped model settings.
+- If an operation-scoped model is missing, backend falls back to legacy `model` setting and then to ranked defaults from product model table.
 
 ### Sync Status
 
@@ -586,7 +589,8 @@ Response `200 OK`:
 {
   "openRouter": {
     "apiKeyConfigured": true,
-    "model": "openai/gpt-5-mini"
+    "summaryModel": "google/gemma-4-31b-it:free",
+    "tagsModel": "qwen/qwen3-next-80b-a3b-instruct:free"
   }
 }
 ```
@@ -601,7 +605,8 @@ Request body:
 {
   "openRouter": {
     "apiKey": "or-v1-xxxxx",
-    "model": "openai/gpt-5-mini"
+    "summaryModel": "google/gemma-4-31b-it:free",
+    "tagsModel": "qwen/qwen3-next-80b-a3b-instruct:free"
   }
 }
 ```
@@ -612,7 +617,8 @@ Response `200 OK`:
 {
   "openRouter": {
     "apiKeyConfigured": true,
-    "model": "openai/gpt-5-mini"
+    "summaryModel": "google/gemma-4-31b-it:free",
+    "tagsModel": "qwen/qwen3-next-80b-a3b-instruct:free"
   }
 }
 ```
@@ -621,6 +627,7 @@ Rules:
 
 - `openRouter.apiKey` is optional in patch requests
 - Sending an empty string for `openRouter.apiKey` clears the saved key
+- `openRouter.model` remains accepted for backward compatibility and populates both operation-scoped models when explicit `summaryModel` / `tagsModel` are not provided.
 - The app remains usable without OpenRouter configuration; only AI endpoints fail
 
 ## Out of Scope for V1

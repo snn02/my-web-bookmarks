@@ -119,19 +119,33 @@ describe('settings repository', () => {
   it('stores settings and redacts OpenRouter API key in public settings', () => {
     const { settings } = createRepositories();
 
-    settings.updateOpenRouterSettings({ apiKey: 'or-v1-secret', model: 'openai/gpt-5-mini' });
+    settings.updateOpenRouterSettings({
+      apiKey: 'or-v1-secret',
+      summaryModel: 'google/gemma-4-31b-it:free',
+      tagsModel: 'qwen/qwen3-next-80b-a3b-instruct:free'
+    });
 
     expect(settings.getOpenRouterApiKey()).toBe('or-v1-secret');
     expect(settings.getPublicSettings()).toEqual({
       chromeProfilePath: null,
       openRouter: {
         apiKeyConfigured: true,
-        model: 'openai/gpt-5-mini'
+        summaryModel: 'google/gemma-4-31b-it:free',
+        tagsModel: 'qwen/qwen3-next-80b-a3b-instruct:free'
       }
     });
 
-    settings.updateOpenRouterSettings({ apiKey: '', model: 'openai/gpt-5-mini' });
+    settings.updateOpenRouterSettings({ apiKey: '' });
     expect(settings.getPublicSettings().openRouter.apiKeyConfigured).toBe(false);
+  });
+
+  it('uses deterministic fallback from legacy model key when operation-specific models are missing', () => {
+    const { settings } = createRepositories();
+
+    settings.updateOpenRouterSettings({ model: 'openai/gpt-oss-120b:free' });
+
+    expect(settings.getPublicSettings().openRouter.summaryModel).toBe('openai/gpt-oss-120b:free');
+    expect(settings.getPublicSettings().openRouter.tagsModel).toBe('openai/gpt-oss-120b:free');
   });
 
   it('stores and clears the configured Chrome profile path', () => {

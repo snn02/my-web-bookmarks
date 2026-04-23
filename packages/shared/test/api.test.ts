@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { API_BASE_PATH, createApiError, healthResponse } from '../src';
+import {
+  API_BASE_PATH,
+  createApiError,
+  getDefaultSummaryModelId,
+  getDefaultTagModelId,
+  getSortedSummaryModelProfiles,
+  getSortedTagModelProfiles,
+  healthResponse
+} from '../src';
 
 describe('shared API contracts', () => {
   it('defines the V1 API base path', () => {
@@ -24,5 +32,15 @@ describe('shared API contracts', () => {
         }
       }
     });
+  });
+
+  it('provides deterministic OpenRouter model defaults and sorted lists', () => {
+    const summary = getSortedSummaryModelProfiles();
+    const tags = getSortedTagModelProfiles();
+
+    expect(summary[0].id).toBe(getDefaultSummaryModelId());
+    expect(tags[0].id).toBe(getDefaultTagModelId());
+    expect(summary[0].summaryRating).toBeGreaterThanOrEqual(summary[1].summaryRating);
+    expect(tags[0].tagsRating).toBeGreaterThanOrEqual(tags[1].tagsRating);
   });
 });
