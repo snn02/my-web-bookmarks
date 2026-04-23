@@ -333,6 +333,53 @@ describe('App', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('reading-list x'));
   });
 
+  it('renders suggest-tags control before tag search and supports dismissing suggested tags', async () => {
+    const fetchMock = vi.fn();
+    for (const response of createInitialResponses()) {
+      fetchMock.mockResolvedValueOnce(response);
+    }
+    fetchMock
+      .mockResolvedValueOnce(
+        ok({
+          openRouter: openRouterSettings(true, 'openai/gpt-5-mini'),
+          chromeProfilePath: 'C:\\Chrome\\Default'
+        })
+      )
+      .mockResolvedValueOnce(ok({ suggestions: [{ name: 'research' }, { name: 'frontend' }] }))
+      .mockResolvedValueOnce(ok({ id: 'tag_2', name: 'research' }))
+      .mockResolvedValueOnce(
+        ok({
+          id: 'itm_1',
+          tags: [
+            { id: 'tag_1', name: 'frontend' },
+            { id: 'tag_2', name: 'research' }
+          ]
+        })
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const wrapper = mountApp();
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Vue Guide'));
+
+    await expandItem(wrapper, 'Vue Guide');
+    const suggestButton = wrapper.get('[aria-label="Suggest tags for Vue Guide"]');
+    const tagSearchInput = wrapper.get('[aria-label="Find tag for Vue Guide"]');
+    const detailMarkup = wrapper.get('[aria-label="Tags for Vue Guide"]').html();
+    expect(detailMarkup.indexOf(suggestButton.html())).toBeLessThan(detailMarkup.indexOf(tagSearchInput.html()));
+
+    await suggestButton.trigger('click');
+    await flushPromises();
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('research'));
+    expect(wrapper.find('[aria-label="Apply suggested tag frontend to Vue Guide"]').exists()).toBe(false);
+    expect(wrapper.find('[aria-label="Dismiss suggested tag research for Vue Guide"]').exists()).toBe(true);
+
+    await wrapper.get('[aria-label="Dismiss suggested tag research for Vue Guide"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.find('[aria-label="Apply suggested tag research to Vue Guide"]').exists()).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/v1/items/itm_1/tags', expect.anything());
+  });
+
   it('shows sync errors returned after a sync attempt', async () => {
     const fetchMock = vi.fn();
     for (const response of createInitialResponses()) {
@@ -453,7 +500,7 @@ describe('App', () => {
           chromeProfilePath: 'C:\\Chrome\\Default'
         })
       )
-      .mockResolvedValueOnce(ok({ suggestions: [{ name: 'research' }] }))
+      .mockResolvedValueOnce(ok({ suggestions: [{ name: 'research' }, { name: 'frontend' }] }))
       .mockResolvedValueOnce(ok({ id: 'tag_2', name: 'research' }))
       .mockResolvedValueOnce(
         ok({
@@ -484,6 +531,7 @@ describe('App', () => {
     await wrapper.get('[aria-label="Suggest tags for Vue Guide"]').trigger('click');
     await flushPromises();
     await vi.waitFor(() => expect(wrapper.text()).toContain('research'));
+    expect(wrapper.find('[aria-label="Apply suggested tag frontend to Vue Guide"]').exists()).toBe(false);
 
     await wrapper.get('[aria-label="Apply suggested tag research to Vue Guide"]').trigger('click');
     await flushPromises();

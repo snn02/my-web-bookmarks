@@ -333,7 +333,7 @@ async function applySuggestedTag(item: BookmarkItem, suggestion: TagSuggestion):
   aiErrorMessage.value = '';
   try {
     const existingTag = tags.value.find(
-      (tag) => tag.name.toLowerCase() === suggestion.name.toLowerCase()
+      (tag) => normalizeTagName(tag.name) === normalizeTagName(suggestion.name)
     );
     const tag = existingTag ?? (await createTag(suggestion.name));
     if (!existingTag) {
@@ -341,12 +341,7 @@ async function applySuggestedTag(item: BookmarkItem, suggestion: TagSuggestion):
     }
     const result = await attachTagToItem(item.id, tag.id);
     replaceItem({ ...item, tags: result.tags });
-    tagSuggestionsByItemId.value = {
-      ...tagSuggestionsByItemId.value,
-      [item.id]: (tagSuggestionsByItemId.value[item.id] ?? []).filter(
-        (current) => current.name !== suggestion.name
-      )
-    };
+    dismissSuggestedTag(item.id, suggestion.name);
   } catch (error) {
     aiErrorMessage.value = error instanceof Error ? error.message : 'Failed to apply suggested tag.';
     showNotice('error', 'Applying suggested tag failed.');
@@ -377,6 +372,27 @@ function matchingTagsForItem(item: BookmarkItem): Tag[] {
     .filter((tag) => !attachedIds.has(tag.id))
     .filter((tag) => tag.name.toLowerCase().includes(query))
     .slice(0, 8);
+}
+
+function visibleTagSuggestionsForItem(item: BookmarkItem): TagSuggestion[] {
+  const assignedNames = new Set(item.tags.map((tag) => normalizeTagName(tag.name)));
+  return (tagSuggestionsByItemId.value[item.id] ?? []).filter(
+    (suggestion) => !assignedNames.has(normalizeTagName(suggestion.name))
+  );
+}
+
+function dismissSuggestedTag(itemId: string, suggestionName: string): void {
+  const suggestionToDismiss = normalizeTagName(suggestionName);
+  tagSuggestionsByItemId.value = {
+    ...tagSuggestionsByItemId.value,
+    [itemId]: (tagSuggestionsByItemId.value[itemId] ?? []).filter(
+      (current) => normalizeTagName(current.name) !== suggestionToDismiss
+    )
+  };
+}
+
+function normalizeTagName(name: string): string {
+  return name.trim().toLowerCase();
 }
 
 function syncSummaryDrafts(): void {
@@ -620,48 +636,61 @@ function showNotice(type: NoticeType, message: string): void {
                       : 'Generate summary'
                 }}
               </Button>
-              <Button
-                :aria-label="`Suggest tags for ${item.title}`"
-                type="button"
-                :disabled="aiBusyItemId === item.id"
-                @click="loadTagSuggestions(item)"
-              >
-                {{ itemOperationPhase(item.id, 'suggestTags') === 'running' ? 'Suggesting...' : 'Suggest tags' }}
-              </Button>
-            </div>
-            <div v-if="tagSuggestionsByItemId[item.id]?.length" class="suggestions">
-              <Button
-                v-for="suggestion in tagSuggestionsByItemId[item.id]"
-                :key="suggestion.name"
-                :aria-label="`Apply suggested tag ${suggestion.name} to ${item.title}`"
-                type="button"
-                @click="applySuggestedTag(item, suggestion)"
-              >
-                {{ suggestion.name }}
-              </Button>
             </div>
             <div class="tag-editor" :aria-label="`Tags for ${item.title}`">
-              <div class="tags">
-                <span v-for="tag in item.tags" :key="tag.id">
+              <div class="tag-editor-controls">
+                <Button
+                  class="tag-editor-suggest-button"
+                  :aria-label="`Suggest tags for ${item.title}`"
+                  type="button"
+                  severity="secondary"
+                  variant="outlined"
+                  :disabled="aiBusyItemId === item.id"
+                  @click="loadTagSuggestions(item)"
+                >
+                  {{ itemOperationPhase(item.id, 'suggestTags') === 'running' ? 'Suggesting...' : 'Suggest tags' }}
+                </Button>
+                <InputText
+                  v-model="tagSearchByItemId[item.id]"
+                  class="tag-editor-search-input"
+                  :aria-label="`Find tag for ${item.title}`"
+                  placeholder="Find existing tag"
+                />
+              </div>
+              <div class="tag-chip-list" :aria-label="`Assigned tags for ${item.title}`">
+                <span v-for="tag in item.tags" :key="tag.id" class="tag-chip">
                   {{ tag.name }}
                   <button :aria-label="`Remove ${tag.name} from ${item.title}`" type="button" @click="detachTag(item, tag.id)">x</button>
                 </span>
               </div>
-              <InputText
-                v-model="tagSearchByItemId[item.id]"
-                :aria-label="`Find tag for ${item.title}`"
-                placeholder="Find existing tag"
-              />
-              <div v-if="matchingTagsForItem(item).length" class="tag-suggestions">
-                <Button
-                  v-for="tag in matchingTagsForItem(item)"
-                  :key="tag.id"
-                  :aria-label="`Apply existing tag ${tag.name} to ${item.title}`"
-                  type="button"
-                  @click="attachExistingTag(item, tag)"
-                >
-                  {{ tag.name }}
-                </Button>
+              <div v-if="matchingTagsForItem(item).length" class="tag-chip-list tag-chip-list-search">
+                <span v-for="tag in matchingTagsForItem(item)" :key="tag.id" class="tag-chip">
+                  <button
+                    :aria-label="`Apply existing tag ${tag.name} to ${item.title}`"
+                    type="button"
+                    @click="attachExistingTag(item, tag)"
+                  >
+                    {{ tag.name }}
+                  </button>
+                </span>
+              </div>
+              <div v-if="visibleTagSuggestionsForItem(item).length" class="tag-chip-list tag-chip-list-suggested">
+                <span v-for="suggestion in visibleTagSuggestionsForItem(item)" :key="suggestion.name" class="tag-chip">
+                  <button
+                    :aria-label="`Apply suggested tag ${suggestion.name} to ${item.title}`"
+                    type="button"
+                    @click="applySuggestedTag(item, suggestion)"
+                  >
+                    {{ suggestion.name }}
+                  </button>
+                  <button
+                    :aria-label="`Dismiss suggested tag ${suggestion.name} for ${item.title}`"
+                    type="button"
+                    @click="dismissSuggestedTag(item.id, suggestion.name)"
+                  >
+                    x
+                  </button>
+                </span>
               </div>
             </div>
           </div>
@@ -1088,27 +1117,33 @@ h2 {
 }
 
 .actions,
-.tags {
+.tag-chip-list {
   align-items: flex-start;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.tags span {
+.tag-chip {
   background: #f8fafc;
   border: 1px solid var(--line-main);
   border-radius: 999px;
   color: var(--text-main);
+  display: inline-flex;
+  font-size: 0.9rem;
+  gap: 4px;
+  line-height: 1.2;
   padding: 4px 8px;
 }
 
-.tags button {
+.tag-chip button {
   background: transparent;
   border: 0;
-  color: #475569;
+  color: inherit;
   cursor: pointer;
-  padding: 0 0 0 6px;
+  font: inherit;
+  margin: 0;
+  padding: 0;
 }
 
 .summary-editor {
@@ -1122,32 +1157,62 @@ h2 {
   width: 100%;
 }
 
-.suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-
 .tag-editor {
   background: var(--bg-subtle);
   border: 1px solid var(--line-main);
   border-radius: 10px;
+  display: grid;
+  gap: 10px;
   margin-top: 12px;
   padding: 10px;
 }
 
-.tag-editor input {
-  box-sizing: border-box;
-  margin-top: 8px;
-  width: 100%;
+.tag-editor-controls {
+  align-items: stretch;
+  display: flex;
+  gap: 8px;
 }
 
-.tag-suggestions {
+.tag-editor-suggest-button {
+  white-space: nowrap;
+}
+
+.tag-editor-search-input {
+  flex: 1;
+}
+
+:deep(.tag-editor-suggest-button.p-button) {
+  background: var(--brand-main);
+  border-color: var(--brand-main);
+  color: #ffffff !important;
+}
+
+:deep(.tag-editor-suggest-button.p-button .p-button-label),
+:deep(.tag-editor-suggest-button.p-button .p-button-icon) {
+  color: #ffffff !important;
+}
+
+:deep(.tag-editor-suggest-button.p-button:hover) {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.tag-editor-controls :deep(.p-inputtext),
+.tag-editor-controls :deep(.p-button) {
+  min-height: 2.75rem;
+}
+
+.tag-chip-list-search,
+.tag-chip-list-suggested {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 8px;
+}
+
+.tag-chip-list-search .tag-chip,
+.tag-chip-list-suggested .tag-chip {
+  background: #eef2ff;
+  border-color: #c7d2fe;
 }
 
 @media (max-width: 780px) {
@@ -1169,6 +1234,10 @@ h2 {
 
   .row-meta {
     align-items: flex-start;
+  }
+
+  .tag-editor-controls {
+    flex-direction: column;
   }
 }
 </style>

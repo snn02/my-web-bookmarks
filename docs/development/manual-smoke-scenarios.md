@@ -69,10 +69,13 @@ These scenarios mirror the lifecycle checks introduced after Iteration 4 and Ite
 - Expected result: button shows `Generating...` while running, then generated Russian summary (up to 5 sentences, grounded in item metadata plus best-effort page signals: meta/og fields and `h1`/`h2`) appears directly in the editable summary field, or the UI shows a visible upstream error.
 - If OpenRouter returns `429`, expected result: the UI says the OpenRouter rate limit was reached and suggests waiting or choosing another model.
 - Press `Suggest tags`.
-- Expected result: button shows `Suggesting...` while running; short tag suggestions appear but are not persisted.
+- Expected result: button shows `Suggesting...` while running; suggested tags appear under the item tag search input in the same chip-style UI as assigned tags.
+- Expected result: suggestions that are already attached to the item are not shown in the suggested list.
+- Click one suggested tag chip (not its `x`).
+- Expected result: that tag is attached to the item and disappears from suggested chips.
+- Click `x` on one remaining suggested chip.
+- Expected result: the chip is dismissed from suggestions only and is not attached to the item.
 - If OpenRouter returns an upstream failure, expected result: the UI shows a readable troubleshooting message, not a raw JSON error payload.
-- Confirm one suggestion.
-- Expected result: the tag appears on the item through the same item-scoped tag area.
 
 ## No-Indefinite-State Rule
 

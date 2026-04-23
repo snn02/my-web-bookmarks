@@ -143,3 +143,25 @@ This log is the active implementation journal for V5.
 - Extend settings API contract and repository keys for prompt templates.
 - Use saved prompt templates in AI service request composition.
 - Update manual smoke and API docs for new settings fields and fallback behavior.
+
+## 2026-04-24 - Suggest Tags UX Unified With Item Tag Editor
+
+**Decision**
+
+- Move `Suggest tags` control into item tag editor flow (before `Find existing tag` input).
+- Render suggested tags as chip-style elements under tag search, consistent with assigned tag chip styling.
+- Hide suggested tags that are already attached to the current item.
+- Support two explicit suggestion actions:
+  - click chip body -> attach tag and remove suggestion;
+  - click chip `x` -> dismiss suggestion only.
+
+**Why**
+
+- Current split rendering increased context switching and made confirm/dismiss semantics unclear.
+- Unified chip interaction matches user mental model and speeds manual triage.
+
+**Implementation impact**
+
+- Frontend-only changes in item card template/state styling; no API contract change.
+- Added/updated web tests for placement, filtering, confirm, and dismiss behavior.
+- Updated manual smoke and user-story docs for the new interaction flow.

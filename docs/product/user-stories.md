@@ -20,27 +20,28 @@
 10. As a user, I want to find existing tags by typing a substring in an item card so tagging stays fast as the tag list grows.
 11. As a user, I want to remove a tag from a specific item without deleting the tag globally.
 12. As a user, I want AI to suggest tags so I can process my reading list faster.
+13. As a user, I want suggested AI tags to appear in the same tag-chip UI as assigned tags, so I can confirm or dismiss each suggestion quickly without visual context switching.
 
 ## Summary
 
-13. As a user, I want AI to generate a Russian summary for an article so I can quickly decide whether to read it in full.
-14. As a user, I want the generated summary to appear directly in the editable field so I can correct or refine it immediately.
-15. As a user, I want the current summary to be stored locally so I do not need to recreate it every time.
+14. As a user, I want AI to generate a Russian summary for an article so I can quickly decide whether to read it in full.
+15. As a user, I want the generated summary to appear directly in the editable field so I can correct or refine it immediately.
+16. As a user, I want the current summary to be stored locally so I do not need to recreate it every time.
 
 ## Retrieval
 
-16. As a user, I want to search by title, URL, domain, or summary so I can find old materials quickly.
-17. As a user, I want to filter by status and tags so I can focus on a relevant subset of items.
+17. As a user, I want to search by title, URL, domain, or summary so I can find old materials quickly.
+18. As a user, I want to filter by status and tags so I can focus on a relevant subset of items.
 
 ## Settings and Reliability
 
-18. As a user, I want to configure OpenRouter credentials and one shared model choice for summary and tags so I can control cost and quality.
-19. As a user, I want the app to remain usable without AI configuration so core bookmark processing still works locally.
+19. As a user, I want to configure OpenRouter credentials and one shared model choice for summary and tags so I can control cost and quality.
+20. As a user, I want the app to remain usable without AI configuration so core bookmark processing still works locally.
 
 ## V3 Workflow UI
 
-20. As a user, I want to see a compact inbox list so large bookmark sets are easier to scan quickly.
-21. As a user, I want to expand only one bookmark card when needed so details do not overload the main view.
-22. As a user, I want app settings on a separate screen so operational processing and configuration are not mixed.
-23. As a user, I want long operations to show clear running and final states so I always understand what happened.
-24. As a user, I want success and failure confirmations after key actions so I do not repeat actions unnecessarily.
+21. As a user, I want to see a compact inbox list so large bookmark sets are easier to scan quickly.
+22. As a user, I want to expand only one bookmark card when needed so details do not overload the main view.
+23. As a user, I want app settings on a separate screen so operational processing and configuration are not mixed.
+24. As a user, I want long operations to show clear running and final states so I always understand what happened.
+25. As a user, I want success and failure confirmations after key actions so I do not repeat actions unnecessarily.

@@ -114,11 +114,48 @@ Re-scoped on 2026-04-23 after manual testing and rollback decision.
 - `npm test`
 - `npm run smoke`
 
+## V5-I4: Suggest Tags UX Unification In Item Card
+
+**Status:** planned  
+**Issue:** TBD (to be created)
+
+**User-visible outcome (before/after)**
+
+- Before: AI tag suggestions are rendered in a separate button group above the tag search input and may include tags already attached to the item.
+- After: AI tag suggestions are rendered as chips in the same visual style zone as item tags under the search input, exclude already attached tags, and support explicit confirm/dismiss actions.
+
+**Scope**
+
+- Move `Suggest tags` trigger button to be located immediately before the item-level tag search input.
+- Filter suggestion list to hide tags that are already assigned to the current item.
+- Render suggested tags using the same chip styling pattern as assigned item tags.
+- Add dismiss control (`x`) on each suggested chip that removes it from current suggestion list only.
+- Keep confirm action by clicking suggestion chip body:
+  - attach tag to item;
+  - remove that tag from suggestion list.
+- Keep persistence boundary unchanged: no automatic persistence without explicit user action.
+
+**Acceptance criteria**
+
+- `Suggest tags` appears before `Find existing tag` input in expanded item card.
+- Suggested tags never include tags already attached to that item.
+- Suggested chips and assigned chips use one consistent visual pattern.
+- Clicking a suggested chip attaches it and removes it from suggested chips.
+- Clicking `x` on suggested chip dismisses it without attaching.
+
+**Verification**
+
+- `npm run typecheck`
+- `npm run lint`
+- `npm test`
+- `npm run smoke`
+
 ## Execution Order
 
 1. V5-I1
 2. V5-I2
 3. V5-I3
+4. V5-I4
 
 ## Tracking Notes
 
