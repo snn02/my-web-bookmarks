@@ -1,27 +1,24 @@
-import { getDefaultSummaryModelId, getDefaultTagModelId } from '@my-web-bookmarks/shared';
+import { getDefaultModelId } from '@my-web-bookmarks/shared';
 import type { AppDatabase } from '../../db/database';
 import { nowIso } from '../time';
 
 export interface PublicSettings {
   openRouter: {
     apiKeyConfigured: boolean;
-    summaryModel: string;
-    tagsModel: string;
+    model: string;
   };
   chromeProfilePath: string | null;
 }
 
 export interface OpenRouterSettingsPatch {
   apiKey?: string;
-  summaryModel?: string;
-  tagsModel?: string;
   model?: string;
 }
 
 const OPENROUTER_API_KEY = 'openrouter_api_key';
-const OPENROUTER_MODEL_LEGACY = 'openrouter_model';
-const OPENROUTER_SUMMARY_MODEL = 'openrouter_summary_model';
-const OPENROUTER_TAGS_MODEL = 'openrouter_tags_model';
+const OPENROUTER_MODEL = 'openrouter_model';
+const OPENROUTER_SUMMARY_MODEL_LEGACY = 'openrouter_summary_model';
+const OPENROUTER_TAGS_MODEL_LEGACY = 'openrouter_tags_model';
 const CHROME_PROFILE_PATH = 'chrome_profile_path';
 
 interface SettingRow {
@@ -59,43 +56,11 @@ export function createSettingsRepository(db: AppDatabase) {
       }
     }
 
-    if (patch.summaryModel !== undefined) {
-      if (patch.summaryModel === '') {
-        deleteSetting(OPENROUTER_SUMMARY_MODEL);
-      } else {
-        setSetting(OPENROUTER_SUMMARY_MODEL, patch.summaryModel);
-      }
-    }
-
-    if (patch.tagsModel !== undefined) {
-      if (patch.tagsModel === '') {
-        deleteSetting(OPENROUTER_TAGS_MODEL);
-      } else {
-        setSetting(OPENROUTER_TAGS_MODEL, patch.tagsModel);
-      }
-    }
-
     if (patch.model !== undefined) {
       if (patch.model === '') {
-        deleteSetting(OPENROUTER_MODEL_LEGACY);
+        deleteSetting(OPENROUTER_MODEL);
       } else {
-        setSetting(OPENROUTER_MODEL_LEGACY, patch.model);
-      }
-
-      if (patch.summaryModel === undefined) {
-        if (patch.model === '') {
-          deleteSetting(OPENROUTER_SUMMARY_MODEL);
-        } else {
-          setSetting(OPENROUTER_SUMMARY_MODEL, patch.model);
-        }
-      }
-
-      if (patch.tagsModel === undefined) {
-        if (patch.model === '') {
-          deleteSetting(OPENROUTER_TAGS_MODEL);
-        } else {
-          setSetting(OPENROUTER_TAGS_MODEL, patch.model);
-        }
+        setSetting(OPENROUTER_MODEL, patch.model);
       }
     }
   }
@@ -117,17 +82,17 @@ export function createSettingsRepository(db: AppDatabase) {
   }
 
   function getPublicSettings(): PublicSettings {
-    const legacyModel = getSetting(OPENROUTER_MODEL_LEGACY);
-    const summaryModel =
-      getSetting(OPENROUTER_SUMMARY_MODEL) ?? legacyModel ?? getDefaultSummaryModelId();
-    const tagsModel = getSetting(OPENROUTER_TAGS_MODEL) ?? legacyModel ?? getDefaultTagModelId();
+    const model =
+      getSetting(OPENROUTER_MODEL) ??
+      getSetting(OPENROUTER_SUMMARY_MODEL_LEGACY) ??
+      getSetting(OPENROUTER_TAGS_MODEL_LEGACY) ??
+      getDefaultModelId();
 
     return {
       chromeProfilePath: getChromeProfilePath(),
       openRouter: {
         apiKeyConfigured: Boolean(getOpenRouterApiKey()),
-        summaryModel,
-        tagsModel
+        model
       }
     };
   }

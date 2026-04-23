@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import {
   API_BASE_PATH,
-  getSortedSummaryModelProfiles,
-  getSortedTagModelProfiles,
+  getSortedModelProfiles,
   type HealthResponse
 } from '@my-web-bookmarks/shared';
 import Button from 'primevue/button';
@@ -58,8 +57,7 @@ const newTagName = ref('');
 const chromeProfilePath = ref('');
 const openRouterApiKey = ref('');
 const openRouterConfigured = ref(false);
-const openRouterSummaryModel = ref('');
-const openRouterTagsModel = ref('');
+const openRouterModel = ref('');
 const syncStatus = ref<SyncStatus | null>(null);
 const syncInProgress = ref(false);
 const syncPhase = ref<OperationPhase>('idle');
@@ -73,10 +71,8 @@ const currentView = ref<AppView>(viewFromPath(currentPath()));
 const itemOperationStateById = ref<Record<string, ItemOperationState>>({});
 const notice = ref<{ type: NoticeType; message: string } | null>(null);
 let noticeTimer: number | undefined;
-const summaryModelProfiles = getSortedSummaryModelProfiles();
-const tagModelProfiles = getSortedTagModelProfiles();
-const summaryModelIds = new Set(summaryModelProfiles.map((profile) => profile.id));
-const tagModelIds = new Set(tagModelProfiles.map((profile) => profile.id));
+const modelProfiles = getSortedModelProfiles();
+const modelIds = new Set(modelProfiles.map((profile) => profile.id));
 
 const selectedTagId = computed(() => tagFilter.value || undefined);
 
@@ -120,8 +116,7 @@ async function loadInitialData(): Promise<void> {
     tags.value = tagList.tags;
     chromeProfilePath.value = settings.chromeProfilePath ?? '';
     openRouterConfigured.value = settings.openRouter.apiKeyConfigured;
-    openRouterSummaryModel.value = normalizeSummaryModelSelection(settings.openRouter.summaryModel);
-    openRouterTagsModel.value = normalizeTagModelSelection(settings.openRouter.tagsModel);
+    openRouterModel.value = normalizeModelSelection(settings.openRouter.model);
     syncStatus.value = status;
     syncSummaryDrafts();
   } catch (error) {
@@ -213,20 +208,14 @@ async function saveProfilePath(): Promise<void> {
 
 async function saveAiSettings(): Promise<void> {
   try {
-    const useSummaryAuto = openRouterSummaryModel.value === '';
-    const useTagsAuto = openRouterTagsModel.value === '';
+    const useAutoModel = openRouterModel.value === '';
     const openRouterPatch = {
       ...(openRouterApiKey.value.trim() ? { apiKey: openRouterApiKey.value.trim() } : {}),
-      model: '',
-      summaryModel: useSummaryAuto ? '' : openRouterSummaryModel.value,
-      tagsModel: useTagsAuto ? '' : openRouterTagsModel.value
+      model: useAutoModel ? '' : openRouterModel.value
     };
     const settings = await saveOpenRouterSettings(openRouterPatch);
     openRouterConfigured.value = settings.openRouter.apiKeyConfigured;
-    openRouterSummaryModel.value = useSummaryAuto
-      ? ''
-      : normalizeSummaryModelSelection(settings.openRouter.summaryModel);
-    openRouterTagsModel.value = useTagsAuto ? '' : normalizeTagModelSelection(settings.openRouter.tagsModel);
+    openRouterModel.value = useAutoModel ? '' : normalizeModelSelection(settings.openRouter.model);
     openRouterApiKey.value = '';
     showNotice('success', 'AI settings saved.');
   } catch (error) {
@@ -236,12 +225,8 @@ async function saveAiSettings(): Promise<void> {
   }
 }
 
-function normalizeSummaryModelSelection(model: string): string {
-  return summaryModelIds.has(model) ? model : '';
-}
-
-function normalizeTagModelSelection(model: string): string {
-  return tagModelIds.has(model) ? model : '';
+function normalizeModelSelection(model: string): string {
+  return modelIds.has(model) ? model : '';
 }
 
 async function syncBookmarks(): Promise<void> {
@@ -700,28 +685,15 @@ function showNotice(type: NoticeType, message: string): void {
           />
         </label>
         <label class="field-stack">
-          <span class="field-label">Summary model</span>
-          <select v-model="openRouterSummaryModel" aria-label="OpenRouter summary model">
-            <option value="">Auto (best summary model)</option>
+          <span class="field-label">AI model</span>
+          <select v-model="openRouterModel" aria-label="OpenRouter model">
+            <option value="">Auto (best model)</option>
             <option
-              v-for="profile in summaryModelProfiles"
-              :key="`summary-${profile.id}`"
+              v-for="profile in modelProfiles"
+              :key="`model-${profile.id}`"
               :value="profile.id"
             >
-              {{ `${profile.id} (${profile.summaryRating}/5)` }}
-            </option>
-          </select>
-        </label>
-        <label class="field-stack">
-          <span class="field-label">Tags model</span>
-          <select v-model="openRouterTagsModel" aria-label="OpenRouter tags model">
-            <option value="">Auto (best tags model)</option>
-            <option
-              v-for="profile in tagModelProfiles"
-              :key="`tags-${profile.id}`"
-              :value="profile.id"
-            >
-              {{ `${profile.id} (${profile.tagsRating}/5)` }}
+              {{ `${profile.id} (${profile.rating}/5)` }}
             </option>
           </select>
         </label>

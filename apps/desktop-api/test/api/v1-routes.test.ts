@@ -424,7 +424,7 @@ describe('summaries API', () => {
     expect(JSON.stringify(openRouterCall?.[1])).toContain('Stored summary context.');
   });
 
-  it('uses extracted page content for tag suggestions when summary is missing and does not persist summary', async () => {
+  it('uses metadata context for tag suggestions when summary is missing and does not persist summary', async () => {
     const fetchMock = createHybridFetchMock({
       pageHtml:
         '<html><body><article><h1>Tags from content</h1><p>Extracted fallback text for tags.</p></article></body></html>',
@@ -450,7 +450,8 @@ describe('summaries API', () => {
     const openRouterCall = calls.find(
       ([url]) => url === 'https://openrouter.ai/api/v1/chat/completions'
     );
-    expect(JSON.stringify(openRouterCall?.[1])).toContain('Extracted fallback text for tags.');
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('Title: No summary tags');
+    expect(JSON.stringify(openRouterCall?.[1])).not.toContain('Extracted fallback text for tags.');
   });
 
   it('maps OpenRouter failures to upstream_error', async () => {
@@ -529,7 +530,7 @@ describe('summaries API', () => {
     expect(response.body.error.code).toBe('upstream_error');
   });
 
-  it('builds summary prompt from extracted page content', async () => {
+  it('builds summary prompt from cleaned metadata and avoids page fetch calls', async () => {
     const fetchMock = createHybridFetchMock({
       pageHtml:
         '<html><body><article><h1>Grounded title</h1><p>Grounded content for summary extraction.</p></article></body></html>',
@@ -554,82 +555,9 @@ describe('summaries API', () => {
       ([url]) => url === 'https://openrouter.ai/api/v1/chat/completions'
     );
     expect(openRouterCall).toBeDefined();
-    expect(JSON.stringify(openRouterCall?.[1])).toContain('Grounded content for summary extraction.');
-  });
-
-  it('returns content_unavailable when extracted page content cannot be obtained', async () => {
-    const fetchMock = createHybridFetchMock({
-      pageHtml: 'forbidden',
-      pageStatus: 403,
-      openRouterContent: 'Should not be used.'
-    });
-    const { app, items, settings } = createApiTestContext(fetchMock as unknown as typeof fetch);
-    settings.updateOpenRouterSettings({
-      apiKey: 'or-v1-secret',
-      model: 'openai/gpt-5-mini'
-    });
-    const item = items.upsertImportedItem({
-      sourceType: 'chrome_bookmark',
-      title: 'Blocked article',
-      url: 'https://example.com/blocked'
-    });
-
-    const response = await request(app).post(`/api/v1/items/${item.id}/summary`).send({});
-
-    expect(response.status).toBe(422);
-    expect(response.body.error.code).toBe('content_unavailable');
-    const calls = fetchMock.mock.calls as unknown as [string, RequestInit][];
-    expect(calls.some(([url]) => url === 'https://openrouter.ai/api/v1/chat/completions')).toBe(false);
-  });
-
-  it('returns content_unavailable when extraction exceeds redirect cap', async () => {
-    const redirectingFetch = vi.fn(async (_input: RequestInfo | URL) => {
-      return new Response('', {
-        headers: { Location: 'https://example.com/next-hop' },
-        status: 302
-      });
-    });
-    const { app, items, settings } = createApiTestContext(redirectingFetch as unknown as typeof fetch);
-    settings.updateOpenRouterSettings({
-      apiKey: 'or-v1-secret',
-      model: 'openai/gpt-5-mini'
-    });
-    const item = items.upsertImportedItem({
-      sourceType: 'chrome_bookmark',
-      title: 'Redirect loop article',
-      url: 'https://example.com/redirect-loop'
-    });
-
-    const response = await request(app).post(`/api/v1/items/${item.id}/summary`).send({});
-
-    expect(response.status).toBe(422);
-    expect(response.body.error.code).toBe('content_unavailable');
-    const calls = redirectingFetch.mock.calls as unknown as [string, RequestInit][];
-    expect(calls.length).toBeGreaterThan(5);
-  });
-
-  it('returns content_unavailable when item URL directly targets a private IP range', async () => {
-    const fetchMock = createHybridFetchMock({
-      pageHtml: '<html><body><article><p>Should never be fetched.</p></article></body></html>',
-      openRouterContent: 'Should not be used.'
-    });
-    const { app, items, settings } = createApiTestContext(fetchMock as unknown as typeof fetch);
-    settings.updateOpenRouterSettings({
-      apiKey: 'or-v1-secret',
-      model: 'openai/gpt-5-mini'
-    });
-    const item = items.upsertImportedItem({
-      sourceType: 'chrome_bookmark',
-      title: 'Private host article',
-      url: 'http://192.168.1.12/private-host'
-    });
-
-    const response = await request(app).post(`/api/v1/items/${item.id}/summary`).send({});
-
-    expect(response.status).toBe(422);
-    expect(response.body.error.code).toBe('content_unavailable');
-    const calls = fetchMock.mock.calls as unknown as [string, RequestInit][];
-    expect(calls).toHaveLength(0);
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('Title: Grounding article');
+    expect(JSON.stringify(openRouterCall?.[1])).toContain('within 5 sentences');
+    expect(calls.some(([url]) => url === item.url)).toBe(false);
   });
 });
 
@@ -640,8 +568,7 @@ describe('settings API', () => {
     const patchResponse = await request(app).patch('/api/v1/settings').send({
       openRouter: {
         apiKey: 'or-v1-secret',
-        summaryModel: 'google/gemma-4-31b-it:free',
-        tagsModel: 'qwen/qwen3-next-80b-a3b-instruct:free'
+        model: 'google/gemma-4-31b-it:free'
       }
     });
 
@@ -650,8 +577,7 @@ describe('settings API', () => {
       chromeProfilePath: null,
       openRouter: {
         apiKeyConfigured: true,
-        summaryModel: 'google/gemma-4-31b-it:free',
-        tagsModel: 'qwen/qwen3-next-80b-a3b-instruct:free'
+        model: 'google/gemma-4-31b-it:free'
       }
     });
     expect(JSON.stringify(patchResponse.body)).not.toContain('or-v1-secret');
@@ -664,7 +590,7 @@ describe('settings API', () => {
     expect(JSON.stringify(getResponse.body)).not.toContain('or-v1-secret');
   });
 
-  it('applies legacy model patch to both operation-specific model fields', async () => {
+  it('applies shared model patch to public settings', async () => {
     const { app } = createApiTestContext();
 
     const patchResponse = await request(app).patch('/api/v1/settings').send({
@@ -674,8 +600,7 @@ describe('settings API', () => {
     });
 
     expect(patchResponse.status).toBe(200);
-    expect(patchResponse.body.openRouter.summaryModel).toBe('openai/gpt-oss-120b:free');
-    expect(patchResponse.body.openRouter.tagsModel).toBe('openai/gpt-oss-120b:free');
+    expect(patchResponse.body.openRouter.model).toBe('openai/gpt-oss-120b:free');
   });
 
   it('patches and returns saved Chrome profile path without default detection', async () => {

@@ -47,8 +47,7 @@ export interface ItemFilters {
 export interface PublicSettings {
   openRouter: {
     apiKeyConfigured: boolean;
-    summaryModel: string;
-    tagsModel: string;
+    model: string;
   };
   chromeProfilePath?: string | null;
 }
@@ -65,8 +64,6 @@ export interface SyncStatus {
 
 export interface OpenRouterSettingsPatch {
   apiKey?: string;
-  summaryModel?: string;
-  tagsModel?: string;
   model?: string;
 }
 

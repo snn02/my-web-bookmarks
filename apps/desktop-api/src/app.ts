@@ -4,7 +4,6 @@ import { createInMemoryDatabase, initializeDatabase, type AppDatabase } from './
 import {
   AiNotConfiguredError,
   AiUpstreamError,
-  ContentUnavailableError,
   createAiService
 } from './domain/ai/ai-service';
 import { createItemRepository, type ItemSort, type ItemStatus } from './domain/items/item-repository';
@@ -275,17 +274,11 @@ export function createApp(options: CreateAppOptions = {}): Express {
 
       settings.updateOpenRouterSettings({
         apiKey: typeof openRouter.apiKey === 'string' ? openRouter.apiKey : undefined,
-        model: typeof openRouter.model === 'string' ? openRouter.model : undefined,
-        summaryModel:
-          typeof openRouter.summaryModel === 'string' ? openRouter.summaryModel : undefined,
-        tagsModel: typeof openRouter.tagsModel === 'string' ? openRouter.tagsModel : undefined
+        model: typeof openRouter.model === 'string' ? openRouter.model : undefined
       });
       logger.info('settings.openrouter.updated', {
         apiKeyProvided: typeof openRouter.apiKey === 'string' && openRouter.apiKey.length > 0,
-        model: typeof openRouter.model === 'string' ? openRouter.model : undefined,
-        summaryModel:
-          typeof openRouter.summaryModel === 'string' ? openRouter.summaryModel : undefined,
-        tagsModel: typeof openRouter.tagsModel === 'string' ? openRouter.tagsModel : undefined
+        model: typeof openRouter.model === 'string' ? openRouter.model : undefined
       });
     }
 
@@ -342,10 +335,6 @@ function sendAiError(response: Parameters<typeof sendApiError>[0], error: unknow
 
   if (error instanceof AiUpstreamError) {
     return sendApiError(response, 502, 'upstream_error', getAiUpstreamMessage(error));
-  }
-
-  if (error instanceof ContentUnavailableError) {
-    return sendApiError(response, 422, 'content_unavailable', error.message);
   }
 
   throw error;

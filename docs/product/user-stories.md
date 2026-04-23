@@ -34,7 +34,7 @@
 
 ## Settings and Reliability
 
-18. As a user, I want to configure OpenRouter credentials and model choice so I can control cost and quality.
+18. As a user, I want to configure OpenRouter credentials and one shared model choice for summary and tags so I can control cost and quality.
 19. As a user, I want the app to remain usable without AI configuration so core bookmark processing still works locally.
 
 ## V3 Workflow UI

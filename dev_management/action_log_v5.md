@@ -81,3 +81,23 @@ This log is the active implementation journal for V5.
 **Next**
 
 - Reflect these controls in issue execution checklists before coding V5-I1.
+
+## 2026-04-23 - V5 Re-Scoped After Manual Testing
+
+**Decision**
+
+- Roll back page-extraction-based summary generation to metadata-grounded generation.
+- Keep summary max length at 5 sentences.
+- Roll back dual-model settings to one shared OpenRouter model for both summary and tags.
+- For tag suggestion when summary is missing, use cleaned metadata fallback only and do not persist summary.
+
+**Why**
+
+- Manual testing showed extraction instability and unreadable-content outcomes for valid pages.
+- Shared model control is simpler and aligns with observed user workflow.
+
+**Implementation impact**
+
+- Remove extraction-dependent code paths and `content_unavailable` behavior from AI summary/tag flows.
+- Simplify settings repository/API/UI contract back to one model field.
+- Update tests and docs to the metadata-only grounding behavior.

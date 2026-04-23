@@ -5,7 +5,6 @@ export type ApiErrorCode =
   | 'not_found'
   | 'conflict'
   | 'ai_not_configured'
-  | 'content_unavailable'
   | 'sync_already_running'
   | 'upstream_error';
 

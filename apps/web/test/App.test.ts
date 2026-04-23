@@ -64,7 +64,7 @@ function createInitialResponses() {
       ]
     }),
     ok({
-      openRouter: { apiKeyConfigured: false, summaryModel: 'google/gemma-4-31b-it:free', tagsModel: 'google/gemma-4-31b-it:free' },
+      openRouter: { apiKeyConfigured: false, model: 'google/gemma-4-31b-it:free' },
       chromeProfilePath: 'C:\\Chrome\\Default'
     }),
     ok({
@@ -180,10 +180,8 @@ describe('App', () => {
     expect(wrapper.find('[aria-label="OpenRouter API key"]').exists()).toBe(true);
     expect(wrapper.text()).toContain('Google profile');
     expect(wrapper.text()).toContain('API key');
-    expect(wrapper.text()).toContain('Summary model');
-    expect(wrapper.text()).toContain('Tags model');
-    expect(wrapper.find('[aria-label="OpenRouter summary model"]').exists()).toBe(true);
-    expect(wrapper.find('[aria-label="OpenRouter tags model"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('AI model');
+    expect(wrapper.find('[aria-label="OpenRouter model"]').exists()).toBe(true);
     expect(wrapper.text()).toContain('(5/5)');
     expect(wrapper.find('[aria-label="Search bookmarks"]').exists()).toBe(false);
   });
@@ -417,7 +415,7 @@ describe('App', () => {
     fetchMock
       .mockResolvedValueOnce(
         ok({
-          openRouter: { apiKeyConfigured: true, summaryModel: 'openai/gpt-5-mini', tagsModel: 'openai/gpt-5-mini' },
+          openRouter: { apiKeyConfigured: true, model: 'openai/gpt-5-mini' },
           chromeProfilePath: 'C:\\Chrome\\Default'
         })
       )
@@ -431,7 +429,7 @@ describe('App', () => {
       )
       .mockResolvedValueOnce(
         ok({
-          openRouter: { apiKeyConfigured: true, summaryModel: 'openai/gpt-5-mini', tagsModel: 'openai/gpt-5-mini' },
+          openRouter: { apiKeyConfigured: true, model: 'openai/gpt-5-mini' },
           chromeProfilePath: 'C:\\Chrome\\Default'
         })
       )
@@ -490,7 +488,7 @@ describe('App', () => {
     fetchMock
       .mockResolvedValueOnce(
         ok({
-          openRouter: { apiKeyConfigured: false, summaryModel: 'google/gemma-4-31b-it:free', tagsModel: 'google/gemma-4-31b-it:free' },
+          openRouter: { apiKeyConfigured: false, model: 'google/gemma-4-31b-it:free' },
           chromeProfilePath: 'C:\\Chrome\\Default'
         })
       )
@@ -512,7 +510,7 @@ describe('App', () => {
     const fetchMock = vi.fn();
     const initialResponses = createInitialResponses();
     initialResponses[3] = ok({
-      openRouter: { apiKeyConfigured: true, summaryModel: 'openai/gpt-5-mini', tagsModel: 'openai/gpt-5-mini' },
+      openRouter: { apiKeyConfigured: true, model: 'openai/gpt-5-mini' },
       chromeProfilePath: 'C:\\Chrome\\Default'
     });
     for (const response of initialResponses) {
@@ -521,7 +519,7 @@ describe('App', () => {
     fetchMock
       .mockResolvedValueOnce(
         ok({
-          openRouter: { apiKeyConfigured: true, summaryModel: 'openai/gpt-5-mini', tagsModel: 'openai/gpt-5-mini' },
+          openRouter: { apiKeyConfigured: true, model: 'openai/gpt-5-mini' },
           chromeProfilePath: 'C:\\Chrome\\Default'
         })
       )
@@ -548,8 +546,6 @@ describe('App', () => {
       body: JSON.stringify({
         openRouter: {
           model: '',
-          summaryModel: '',
-          tagsModel: ''
         }
       }),
       headers: { 'Content-Type': 'application/json' },
@@ -577,7 +573,7 @@ describe('App', () => {
     fetchMock
       .mockResolvedValueOnce(
         ok({
-          openRouter: { apiKeyConfigured: true, summaryModel: 'openai/gpt-5-mini', tagsModel: 'openai/gpt-5-mini' },
+          openRouter: { apiKeyConfigured: true, model: 'openai/gpt-5-mini' },
           chromeProfilePath: 'C:\\Chrome\\Default'
         })
       )

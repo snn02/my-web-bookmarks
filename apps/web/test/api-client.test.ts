@@ -49,8 +49,7 @@ describe('api client', () => {
     await saveChromeProfilePath('C:\\Chrome\\Default');
     await saveOpenRouterSettings({
       apiKey: 'or-v1-secret',
-      summaryModel: 'google/gemma-4-31b-it:free',
-      tagsModel: 'qwen/qwen3-next-80b-a3b-instruct:free'
+      model: 'google/gemma-4-31b-it:free'
     });
     await generateSummary('itm_1');
     await suggestTags('itm_1');
@@ -78,8 +77,7 @@ describe('api client', () => {
       body: JSON.stringify({
         openRouter: {
           apiKey: 'or-v1-secret',
-          summaryModel: 'google/gemma-4-31b-it:free',
-          tagsModel: 'qwen/qwen3-next-80b-a3b-instruct:free'
+          model: 'google/gemma-4-31b-it:free'
         }
       }),
       headers: { 'Content-Type': 'application/json' },

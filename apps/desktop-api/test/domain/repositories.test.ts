@@ -121,8 +121,7 @@ describe('settings repository', () => {
 
     settings.updateOpenRouterSettings({
       apiKey: 'or-v1-secret',
-      summaryModel: 'google/gemma-4-31b-it:free',
-      tagsModel: 'qwen/qwen3-next-80b-a3b-instruct:free'
+      model: 'google/gemma-4-31b-it:free'
     });
 
     expect(settings.getOpenRouterApiKey()).toBe('or-v1-secret');
@@ -130,8 +129,7 @@ describe('settings repository', () => {
       chromeProfilePath: null,
       openRouter: {
         apiKeyConfigured: true,
-        summaryModel: 'google/gemma-4-31b-it:free',
-        tagsModel: 'qwen/qwen3-next-80b-a3b-instruct:free'
+        model: 'google/gemma-4-31b-it:free'
       }
     });
 
@@ -139,13 +137,12 @@ describe('settings repository', () => {
     expect(settings.getPublicSettings().openRouter.apiKeyConfigured).toBe(false);
   });
 
-  it('uses deterministic fallback from legacy model key when operation-specific models are missing', () => {
+  it('uses deterministic fallback from model key when explicit model is configured', () => {
     const { settings } = createRepositories();
 
     settings.updateOpenRouterSettings({ model: 'openai/gpt-oss-120b:free' });
 
-    expect(settings.getPublicSettings().openRouter.summaryModel).toBe('openai/gpt-oss-120b:free');
-    expect(settings.getPublicSettings().openRouter.tagsModel).toBe('openai/gpt-oss-120b:free');
+    expect(settings.getPublicSettings().openRouter.model).toBe('openai/gpt-oss-120b:free');
   });
 
   it('stores and clears the configured Chrome profile path', () => {

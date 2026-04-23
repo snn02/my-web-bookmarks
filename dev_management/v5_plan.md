@@ -2,7 +2,7 @@
 
 ## Version Goal
 
-Deliver grounded AI generation by summarizing real page content (not only metadata), improve tag suggestion grounding, and introduce separate model controls for summary and tags.
+Stabilize AI behavior by switching summary generation to cleaned metadata context (without page extraction), keep tag suggestions summary-first with metadata fallback, and return to one shared model selection for both summary and tags.
 
 ## Process Rules For V5
 
@@ -13,35 +13,32 @@ Deliver grounded AI generation by summarizing real page content (not only metada
 
 ## Version Status
 
-Planned on 2026-04-23.
+Re-scoped on 2026-04-23 after manual testing and rollback decision.
 
 ## Iterations
 
-## V5-I1: Grounded Summary From Extracted Page Content
+## V5-I1: Metadata-Grounded Summary (No Extraction)
 
 **Status:** planned  
 **Issue:** #5 ([URL](https://github.com/snn02/my-web-bookmarks/issues/5))
 
 **User-visible outcome (before/after)**
 
-- Before: summary generation may rely on minimal metadata and can drift from actual page content.
-- After: summary generation uses extracted page text with preprocessing and a strict grounding prompt.
+- Before: summary generation depends on runtime page extraction and can fail with `content_unavailable`.
+- After: summary generation uses cleaned item metadata only and remains available whenever item data exists.
 
 **Scope**
 
-- Add hybrid page-content extraction (primary + fallback algorithm).
-- Add preprocessing to reduce context size while preserving key content.
-- Add extraction guardrails: protocol allowlist (`http`/`https`), redirect limit, response size cap, timeout, and private-network denylist.
-- Update summary prompt to prohibit unsupported guesses and require content-grounded output.
-- Preserve readable error semantics for extraction/upstream failures.
+- Remove runtime page extraction from summary generation pipeline.
+- Build deterministic cleaned metadata context from item fields.
+- Update summary prompt to avoid guessing and constrain output to maximum 5 sentences in Russian.
+- Keep readable OpenRouter upstream failures end-to-end.
 
 **Acceptance criteria**
 
-- Summary request includes extracted page content context.
-- Prompt enforces grounded summarization behavior.
-- Prompt-injection hardening is applied when embedding extracted content into model input.
-- Empty/unreadable page content paths end in explicit readable failure states.
-- Extraction failures use stable API error semantics distinct from provider upstream failures.
+- Summary requests no longer fetch remote page content.
+- Summary output is metadata-grounded and capped to 5 sentences.
+- No `content_unavailable` path remains for summary generation.
 - Existing AI error safety rules remain intact (no secret leakage, no raw JSON in UI).
 
 **Verification**
@@ -51,28 +48,27 @@ Planned on 2026-04-23.
 - `npm test`
 - `npm run smoke`
 
-## V5-I2: Tag Suggestions Use Summary-First Grounding
+## V5-I2: Summary-First Tag Suggestions With Metadata Fallback
 
 **Status:** planned  
 **Issue:** #6 ([URL](https://github.com/snn02/my-web-bookmarks/issues/6))
 
 **User-visible outcome (before/after)**
 
-- Before: tag suggestions are generated without a strict summary-first policy.
-- After: tag suggestion generation uses stored summary first; if missing, it uses the same extraction/preprocessing pipeline without persisting a new summary.
+- Before: tag suggestion fallback depended on page extraction when summary was missing.
+- After: tag suggestions use stored summary first; if summary is missing, they use cleaned metadata fallback without persisting summary.
 
 **Scope**
 
-- Use existing summary as primary context for tag suggestions.
-- If summary is missing, run extraction + preprocessing and pass that context to the model.
+- Keep existing summary as primary tag context.
+- Replace extraction fallback with cleaned metadata fallback.
 - Do not auto-create or persist summary in tag-only flow.
-- Add short-lived item-scoped extraction cache to avoid repeated fetch/extract on rapid retries.
 - Keep tag confirmation behavior unchanged (user must confirm before persistence).
 
 **Acceptance criteria**
 
 - Existing summary is preferred for tag suggestion input.
-- Missing summary path still generates suggestions via extracted content.
+- Missing summary path still generates suggestions via metadata context.
 - Tag flow does not create/update stored summary implicitly.
 - Final AI states remain visible and readable in UI.
 
@@ -83,33 +79,30 @@ Planned on 2026-04-23.
 - `npm test`
 - `npm run smoke`
 
-## V5-I3: Dual AI Model Settings With Ranked Dropdowns And Defaults
+## V5-I3: Single AI Model Setting With Ranked Dropdown
 
 **Status:** planned  
 **Issue:** #7 ([URL](https://github.com/snn02/my-web-bookmarks/issues/7))
 
 **User-visible outcome (before/after)**
 
-- Before: one model field controls all AI operations.
-- After: Settings contains two model selectors (summary model, tags model), both ranked by feature fit scores and saved with one AI Save action.
+- Before: Settings has separate model selectors for summary and tags.
+- After: Settings has one model selector used by both summary and tag generation, saved with one AI Save action.
 
 **Scope**
 
-- Read preferred model table from product doc source.
-- Add separate stored settings for summary and tag model selection.
-- Define migration order from legacy single-model key to operation-scoped model keys.
-- Extend settings API and frontend state for two model fields.
-- Render two dropdowns sorted by relevant score (max 5), with one shared Save button.
-- If model is not selected, resolve to highest-fit default per operation.
-- Update DB/docs to reflect new persisted keys and settings contract.
+- Restore single stored setting key `openrouter_model` as source of truth.
+- Keep one dropdown in settings with model rating labels.
+- Use selected model for both summary and tag requests.
+- If model is not selected, resolve to top-rated default from model table.
+- Update API/UI/docs/tests to remove operation-scoped model fields.
 
 **Acceptance criteria**
 
-- Settings UI shows two model dropdowns with correct sorting.
-- Single Save action persists both model settings.
-- Defaults resolve to top-rated model when explicit selection is missing.
-- Legacy single-model setting fallback behavior is deterministic and covered by tests.
-- API and docs clearly describe dual-model settings behavior.
+- Settings UI shows one model dropdown.
+- Save AI persists one shared model.
+- Summary and tag requests use the same resolved model.
+- API and docs clearly describe shared-model behavior.
 
 **Verification**
 
@@ -126,5 +119,5 @@ Planned on 2026-04-23.
 
 ## Tracking Notes
 
-- Issue links are already populated for all V5 slices (`#5`, `#6`, `#7`).
+- Issue links remain populated for all V5 slices (`#5`, `#6`, `#7`).
 - Keep issue status in GitHub and mirror concise status here.

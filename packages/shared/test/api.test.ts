@@ -2,10 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   API_BASE_PATH,
   createApiError,
-  getDefaultSummaryModelId,
-  getDefaultTagModelId,
-  getSortedSummaryModelProfiles,
-  getSortedTagModelProfiles,
+  getDefaultModelId,
+  getSortedModelProfiles,
   healthResponse
 } from '../src';
 
@@ -35,12 +33,9 @@ describe('shared API contracts', () => {
   });
 
   it('provides deterministic OpenRouter model defaults and sorted lists', () => {
-    const summary = getSortedSummaryModelProfiles();
-    const tags = getSortedTagModelProfiles();
+    const models = getSortedModelProfiles();
 
-    expect(summary[0].id).toBe(getDefaultSummaryModelId());
-    expect(tags[0].id).toBe(getDefaultTagModelId());
-    expect(summary[0].summaryRating).toBeGreaterThanOrEqual(summary[1].summaryRating);
-    expect(tags[0].tagsRating).toBeGreaterThanOrEqual(tags[1].tagsRating);
+    expect(models[0].id).toBe(getDefaultModelId());
+    expect(models[0].rating).toBeGreaterThanOrEqual(models[1].rating);
   });
 });

@@ -53,7 +53,6 @@ Common error codes:
 - `not_found`
 - `conflict`
 - `ai_not_configured`
-- `content_unavailable`
 - `sync_already_running`
 - `upstream_error`
 
@@ -62,7 +61,6 @@ Frontend behavior:
 - The API returns structured JSON errors for machine handling.
 - The web client renders user-readable messages instead of raw JSON payloads.
 - For `upstream_error` from AI endpoints, the web client should include guidance to check the OpenRouter API key, model name, network access, or provider availability.
-- For `content_unavailable` from AI summary endpoints, the web client should show that page content could not be retrieved or parsed, and suggest retrying later or checking URL accessibility.
 - If the backend provides more specific OpenRouter guidance, such as a rate limit message, the web client should render that specific message without adding generic guidance.
 
 ## Resource Models
@@ -140,8 +138,7 @@ Summary rules:
 {
   "openRouter": {
     "apiKeyConfigured": true,
-    "summaryModel": "google/gemma-4-31b-it:free",
-    "tagsModel": "qwen/qwen3-next-80b-a3b-instruct:free"
+    "model": "google/gemma-4-31b-it:free"
   }
 }
 ```
@@ -150,8 +147,8 @@ Settings rules:
 
 - `GET /settings` never returns the raw API key
 - `PATCH /settings` may set or clear the API key
-- `summaryModel` and `tagsModel` are operation-scoped model settings.
-- If an operation-scoped model is missing, backend falls back to legacy `model` setting and then to ranked defaults from product model table.
+- `model` is one shared model setting used for both summary generation and tag suggestion.
+- If `model` is missing, backend falls back to ranked default from product model table.
 
 ### Sync Status
 
@@ -442,7 +439,7 @@ Errors:
 ### `POST /items/:itemId/summary`
 
 Generates or regenerates the current summary with AI.
-The backend first extracts page content from the item URL, preprocesses it, and then asks the model to summarize only that extracted content.
+The backend builds a cleaned metadata context (title, URL, domain, and existing summary when present) and asks the model for a grounded Russian summary.
 
 Request body:
 
@@ -465,7 +462,6 @@ Errors:
 
 - `404 Not Found` when the item does not exist
 - `409 Conflict` with `ai_not_configured` when OpenRouter is not configured
-- `422 Unprocessable Entity` with `content_unavailable` when page content cannot be fetched or processed for summarization
 - `502 Bad Gateway` with `upstream_error` when AI generation fails upstream
 - `upstream_error` may use a specific message for OpenRouter rate limits, rejected keys, rejected model names, or invalid request formats
 
@@ -529,14 +525,13 @@ Rules:
 - Suggestions are not saved automatically
 - The frontend must explicitly attach confirmed tags through tag endpoints
 - If an item already has a stored summary, tag suggestions are generated from that summary context first.
-- If summary is missing, the backend extracts and preprocesses page content for tag context without persisting a new summary.
+- If summary is missing, tag suggestions are generated from cleaned item metadata context without persisting a new summary.
 - The backend asks OpenRouter for one short tag per line and tolerates JSON, comma-separated, or newline-separated model output.
 
 Errors:
 
 - `404 Not Found` when the item does not exist
 - `409 Conflict` with `ai_not_configured` when OpenRouter is not configured
-- `422 Unprocessable Entity` with `content_unavailable` when tag context cannot be built from page content while summary is missing
 - `502 Bad Gateway` with `upstream_error` when AI generation fails upstream
 
 ### `POST /sync/bookmarks`
@@ -589,8 +584,7 @@ Response `200 OK`:
 {
   "openRouter": {
     "apiKeyConfigured": true,
-    "summaryModel": "google/gemma-4-31b-it:free",
-    "tagsModel": "qwen/qwen3-next-80b-a3b-instruct:free"
+    "model": "google/gemma-4-31b-it:free"
   }
 }
 ```
@@ -605,8 +599,7 @@ Request body:
 {
   "openRouter": {
     "apiKey": "or-v1-xxxxx",
-    "summaryModel": "google/gemma-4-31b-it:free",
-    "tagsModel": "qwen/qwen3-next-80b-a3b-instruct:free"
+    "model": "google/gemma-4-31b-it:free"
   }
 }
 ```
@@ -617,8 +610,7 @@ Response `200 OK`:
 {
   "openRouter": {
     "apiKeyConfigured": true,
-    "summaryModel": "google/gemma-4-31b-it:free",
-    "tagsModel": "qwen/qwen3-next-80b-a3b-instruct:free"
+    "model": "google/gemma-4-31b-it:free"
   }
 }
 ```
@@ -627,7 +619,7 @@ Rules:
 
 - `openRouter.apiKey` is optional in patch requests
 - Sending an empty string for `openRouter.apiKey` clears the saved key
-- `openRouter.model` remains accepted for backward compatibility and populates both operation-scoped models when explicit `summaryModel` / `tagsModel` are not provided.
+- `openRouter.model` controls both summary and tag generation model choice.
 - The app remains usable without OpenRouter configuration; only AI endpoints fail
 
 ## Out of Scope for V1
